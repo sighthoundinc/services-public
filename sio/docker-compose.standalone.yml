@@ -1,0 +1,22 @@
+version: "2"
+
+services:  
+  sio:
+    image: ${SIO_DOCKER_IMAGE}:${SIO_DOCKER_TAG}${SIO_ARCH}
+    restart: always
+    volumes:
+      - /data/sighthound/license/sighthound-license.json:/sighthound/sio/share/sighthound-license.json:ro
+      - ./conf/:/etc/sio/:ro
+      - ./conf/plugins/:/lib/sio/plugins/:ro
+      - /data/sighthound/media:/data/sighthound/media:rw
+      - /data/sighthound/.cache:/root/.sio/modelCache
+    env_file:
+      - .env
+    command: > 
+      /sighthound/sio/bin/runPipelineSet ${SIO_ENTRYPOINT}
+    networks:
+      - core_sighthound
+
+networks:
+  core_sighthound:
+    external: true

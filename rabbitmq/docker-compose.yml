@@ -1,0 +1,27 @@
+version: "3.4"
+
+services:
+  rabbitmq:
+    image: "docker.io/rabbitmq:3.8-management"
+    restart: unless-stopped
+    volumes:
+      - ./conf/definitions.json:/etc/rabbitmq/definitions.json
+      - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - rabbitmq_persistent_storage:/var/lib/rabbitmq
+    ports:
+    # For debugging
+      - "18672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    networks:
+      - core_sighthound
+
+networks:
+  core_sighthound:
+    external: true
+
+volumes:
+  rabbitmq_persistent_storage:

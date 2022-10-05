@@ -1,0 +1,16 @@
+version: "2"
+
+services:  
+  live555:
+  # TODO: Change to release image
+    image: ${LIVE555_DOCKER_IMAGE}:${LIVE555_DOCKER_TAG}
+    restart: unless-stopped
+    volumes:
+      - ./test-data:/mnt
+    networks:
+      - core_sighthound
+
+networks:
+  core_sighthound:
+    external: true
+      

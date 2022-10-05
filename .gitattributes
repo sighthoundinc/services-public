@@ -1,0 +1,8 @@
+.github export-ignore
+.gitattributes export-ignore
+conanfile.py export-ignore
+docs export-ignore
+version.properties export-ignore
+.gitignore export-ignore
+.conanignore export-ignore
+.tarignore export-ignore
