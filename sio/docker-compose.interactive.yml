@@ -1,0 +1,26 @@
+version: "2"
+
+services:
+  sio:
+    image: ${SIO_DOCKER_IMAGE}:${SIO_DOCKER_TAG}${SIO_ARCH}
+    restart: always
+    volumes:
+      - /data/sighthound/license/sighthound-license.json:/sighthound/sio/share/sighthound-license.json:ro
+      - ./conf/:/etc/sio/:ro
+      - ./conf/plugins/:/lib/sio/plugins/:ro
+      - /data/sighthound/media:/data/sighthound/media:rw
+      - /data/sighthound/.cache:/root/.sio/modelCache
+    env_file:
+      - .env
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true
+    networks:
+      - core_sighthound
+      - sh-device-ui_sh-ui-net
+
+networks:
+  core_sighthound:
+    external: true
+  sh-device-ui_sh-ui-net:
+    external: true
