@@ -10,6 +10,9 @@ services:
       DOCKER_INFLUXDB_INIT_ORG: sighthound
       DOCKER_INFLUXDB_INIT_BUCKET: mcp
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${MCP_INFLUXDB_TOKEN}
+    volumes:
+      - influxdb-persistent:/var/lib/influxdb
+      - influxdb-persistent-2:/var/lib/influxdb2
     ports:
     - "8086:8086"
     networks:
@@ -33,3 +36,7 @@ services:
 networks:
   core_sighthound:
     external: true
+
+volumes:
+  influxdb-persistent:
+  influxdb-persistent-2:
