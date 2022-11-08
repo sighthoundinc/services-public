@@ -9,6 +9,7 @@ services:
       - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - rabbitmq_persistent_storage:/var/lib/rabbitmq
     ports:
+      - "5672:5672"
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       interval: 30s
