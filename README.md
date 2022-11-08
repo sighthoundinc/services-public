@@ -56,6 +56,9 @@ For more advanced options visit [VehicleAnalytics Documentation](https://dev.sig
 
 ### Deployment
 
+Note: On some devices the `--env-file` flag is not available. Please use this instead:
+`cat conf/default.env > .env && cat conf/custom.env >> .env`
+
 1. `cd core && docker-compose up -d --env-file=conf/default.env ; cd -`
 2. `cd rabbitmq && docker-compose up -d --env-file=conf/default.env ; cd -`
 3. `cd mcp && docker-compose up -d --env-file=conf/default.env ; cd -`
