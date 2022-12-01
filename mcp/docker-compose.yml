@@ -2,7 +2,7 @@ version: "2"
 
 services:
   influxdb:
-    image: influxdb:2.0.7
+    image: ${INFLUXDB_DOCKER_IMAGE}:${INFLUXDB_DOCKER_TAG}
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: ${MCP_INFLUXDB_USERNAME}

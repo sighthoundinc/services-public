@@ -56,9 +56,12 @@ For more advanced options visit [VehicleAnalytics Documentation](https://dev.sig
 
 ### Deployment
 
-1. `cd core && docker-compose up -d ; cd -`
-2. `cd rabbitmq && docker-compose up -d ; cd -`
-3. `cd mcp && docker-compose up -d ; cd -`
+Note: On some devices the `--env-file` flag is not available. Please use this instead:
+`cat conf/default.env > .env && cat conf/custom.env >> .env`
+
+1. `cd core && docker-compose up -d --env-file=conf/default.env ; cd -`
+2. `cd rabbitmq && docker-compose up -d --env-file=conf/default.env ; cd -`
+3. `cd mcp && docker-compose up -d --env-file=conf/default.env ; cd -`
 
 
 At this point you can test your deployment by going to:

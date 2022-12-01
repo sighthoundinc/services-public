@@ -2,15 +2,14 @@ version: "3.4"
 
 services:
   rabbitmq:
-    image: "docker.io/rabbitmq:3.8-management"
+    image: ${AMQP_DOCKER_IMAGE}:${AMQP_DOCKER_TAG}
     restart: unless-stopped
     volumes:
       - ./conf/definitions.json:/etc/rabbitmq/definitions.json
       - ./conf/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
       - rabbitmq_persistent_storage:/var/lib/rabbitmq
     ports:
-    # For debugging
-      - "18672:15672"
+      - "5672:5672"
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       interval: 30s
