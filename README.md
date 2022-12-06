@@ -67,3 +67,7 @@ Note: On some devices the `--env-file` flag is not available. Please use this in
 At this point you can test your deployment by going to:
 
 http://localhost:18672 and http://localhost:8089
+
+## Examples
+
+See development example and demonstration scripts at [docs/examples](docs/examples).
