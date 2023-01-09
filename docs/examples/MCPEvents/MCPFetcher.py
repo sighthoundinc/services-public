@@ -12,7 +12,7 @@ class MCPFetcher:
     # TODO: don't hardcode this
     AUTH_HEADER_CONTENT = "Basic cm9vdDpyb290"
     AUTHENTICATION = f"\'Authorization: {AUTH_HEADER_CONTENT}\'"
-    PORT = 8089
+    PORT = 9097
     class FetchJob:
         def __init__(self, source, file_path, event_segment):
             self.source = source

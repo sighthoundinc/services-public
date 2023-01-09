@@ -21,13 +21,16 @@ services:
   mcp:
     image: ${MCP_DOCKER_IMAGE}:${MCP_DOCKER_TAG}
     restart: unless-stopped
+    mem_limit: 1G
+    mem_reservation: 512M
     depends_on:
       - influxdb
     volumes:
       - ${MEDIA_PATH}:/data/sighthound/media:rw
+      - ${LOG_PATH}:/data/sighthound/logs/mcp:rw
       - ./conf/mcp.yml:/etc/mcpd/default.json:ro
     ports:
-      - "8089:8088"
+      - "9097:9097"
     env_file:
       - .env
     networks:

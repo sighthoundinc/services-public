@@ -1,29 +1,25 @@
 amqp:
   enable: true
   host: rabbitmq
-  port: 5672
   username: guest
   password: guest
-  exchange: anypipe
-  routingKey: "#"
-  queueName: "mcp_persistent"
-  durableQueue: true
   maxLengthSize: 100Mb
 backend:
   host: 0.0.0.0
-  port: 8088
+  port: 9097
   username: root
   password: root
 influxdb:
   enable: true
   host: influxdb
+  auditLogFile: /data/sighthound/logs/mcp/influxdb
 media:
   path: /data/sighthound/media
+cleaner:
+  enable: true
+  auditLogFile: /data/sighthound/logs/mcp/cleaner
+  maxDiskUtilization: 90
+  maxMediaSize: 500 MB
 logs:
   level: info
   format: human-readable
-cleaner:
-  enable: true
-  dryrun: false
-  maxDiskUtilization: 90
-  maxMediaSize: 100 MB

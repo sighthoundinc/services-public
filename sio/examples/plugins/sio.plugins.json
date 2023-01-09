@@ -1,0 +1,20 @@
+{
+    "one-person-one-car" : {
+        "pipeline"      : "./share/pipelines/TrafficAnalytics/TrafficAnalyticsRTSP.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "VIDEO_IN" : "rtsp://live555/one-person-one-car.mkv",
+            "sourceId" : "one-person-one-car",
+            "recordTo":"/data/sighthound/media/output/video/one-person-one-car/",
+            "imageSaveDir":"/data/sighthound/media/output/image/one-person-one-car/",
+            "amqpHost":"rabbitmq",
+            "amqpPort":"5672",
+            "amqpExchange":"anypipe",
+            "amqpUser":"guest",
+            "amqpPassword":"guest",
+            "amqpErrorOnFailure":"true",
+            "extensionModules": "/lib/sio/plugins/DistanceSensor.py",
+            "extensionConfigurations": "/etc/sio/sio.plugins.json"
+        }
+    }
+}
