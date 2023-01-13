@@ -10,10 +10,20 @@ class ROIFilter:
 
     @staticmethod
     def convert_points_to_polygon(points):
+        x_div = 1
+        y_div = 1
+        points_list = []
+        for p in points:
+            points_list.extend(list(p.values()))
+        if max(points_list) > 1.0:
+            print("Non-normalized coordinates specified, assuming 1920x1080 coordinates and normalizing")
+            x_div = 1920
+            y_div = 1080
+        normalized_points = ([[p["x"]/x_div, p["y"]/y_div] for p in points])
         try:
-            return geometry.Polygon(([[p["x"]/1920, p["y"]/1080] for p in points]))
+            return geometry.Polygon(normalized_points)
         except Exception as e:
-            print("ERROR: ", e)
+            print("ROI Filter point conversion error: ", e)
 
     def __init__(self, file):
         self.regions = []
