@@ -12,8 +12,9 @@ import numpy as np
 class MCPEventAnnotator:
     DEFAULT_CAPTURE_DIR="video_captures"
     DEFAULT_ANNOTATED_VIDEO_WRITE_SUBDIR="annotated"
+    DEFAULT_DISPLAY_TIMESTAMPS = False
 
-    def __init__(self,  capture_dir=None, sensors_json = None, annotated_subdir=None):
+    def __init__(self,  capture_dir=None, sensors_json = None, annotated_subdir=None, timestamp_display=False):
         self.capture_dir = capture_dir
         if self.capture_dir is None:
             self.capture_dir = MCPEventAnnotator.DEFAULT_CAPTURE_DIR
@@ -23,6 +24,7 @@ class MCPEventAnnotator:
         self.roi_filter = None
         if sensors_json:
             self.roi_filter = ROIFilter(sensors_json)
+        self.timestamp_display = timestamp_display
 
     def annotate_frame_with_event(self, frame, data):
         annotated = False
@@ -54,6 +56,15 @@ class MCPEventAnnotator:
                                     1, color, 2, cv2.LINE_AA)
                     annotated = True
         return annotated
+
+    def annotate_frame_with_timestamp(self, frame, anypipe_timestamp, video_timestamp):
+        
+        if video_timestamp:
+            cv2.putText(frame, str(video_timestamp), (40,70), cv2.FONT_HERSHEY_SIMPLEX,
+                        1.15 , (255, 255, 0), 2, cv2.LINE_AA, False)
+        if anypipe_timestamp:
+            cv2.putText(frame, str(anypipe_timestamp), (40,110), cv2.FONT_HERSHEY_SIMPLEX,
+                        1.15 , (255, 255, 0), 2, cv2.LINE_AA, False)
 
     def annotate_frame_with_sensors(self, frame):
         poly_points = {}
@@ -120,6 +131,7 @@ class MCPEventAnnotator:
             frame_ts = event_segment['start_ts'] + video_ts_ms
             frame_ts_next = event_segment['start_ts'] + video_ts_next
             annotated_frame = False
+            anypipe_frame_ts = 0
             if ret == True:
                 if event_list_index < len(event_segment['events_list']):
                     next_event = event_segment['events_list'][event_list_index]
@@ -128,6 +140,7 @@ class MCPEventAnnotator:
                             print(f"Wrote frame {frame_count} and annotated with event at timestamp {next_event['frameTimestamp']}")
                             annotated_frame_count = annotated_frame_count +1
                             annotated_frame = True
+                            anypipe_frame_ts = next_event['frameTimestamp']
                         event_list_index = event_list_index + 1
                         if event_list_index < len(event_segment['events_list']):
                             next_event = event_segment['events_list'][event_list_index]
@@ -136,6 +149,8 @@ class MCPEventAnnotator:
 
 
                 self.annotate_frame_with_sensors(frame)
+                if self.timestamp_display:
+                    self.annotate_frame_with_timestamp(frame, anypipe_frame_ts, frame_ts)
                 # Write the frame to the output files
                 output.write(frame)
                 if not annotated_frame:
@@ -163,10 +178,11 @@ class MCPEventAnnotator:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEvents.DEFAULT_CAPTURE_DIR + ")")
+    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEvents.DEFAULT_CAPTURE_DIR + ")", default=MCPEvents.DEFAULT_CAPTURE_DIR)
     parser.add_argument("--sensors_json", help="sensors.json to use for RIO display")
+    parser.add_argument("--timestamps", help="Whether to display timestamps on the video (default is " + str(MCPEventAnnotator.DEFAULT_DISPLAY_TIMESTAMPS) + ")", default=MCPEventAnnotator.DEFAULT_DISPLAY_TIMESTAMPS)
     args = parser.parse_args()
-    annotator = MCPEventAnnotator(args.capture_dir, args.sensors_json)
+    annotator = MCPEventAnnotator(args.capture_dir, args.sensors_json, timestamp_display=args.timestamps)
     annotator.main()
 
 

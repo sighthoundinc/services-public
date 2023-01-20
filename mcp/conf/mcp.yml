@@ -9,10 +9,9 @@ backend:
   port: 9097
   username: root
   password: root
-influxdb:
+sqlite:
   enable: true
-  host: influxdb
-  auditLogFile: /data/sighthound/logs/mcp/influxdb
+  path: /data/sighthound/db/sqlite.db
 media:
   path: /data/sighthound/media
 cleaner:

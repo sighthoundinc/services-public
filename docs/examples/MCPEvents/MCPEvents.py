@@ -11,9 +11,9 @@ import json
 
 class MCPEvents:
     DEFAULT_CAPTURE_DIR="video_captures"
-    def __init__(self, host, capture_dir=None, sensors_json=None):
+    def __init__(self, host,  mcp_username, mcp_password, capture_dir=None, sensors_json=None):
         self.listener = None
-        self.fetcher = MCPFetcher(host)
+        self.fetcher = MCPFetcher(host, mcp_username, mcp_password)
         self.host = host
         # Location to write video captures
         if not capture_dir:
@@ -116,8 +116,10 @@ if __name__ == "__main__":
     parser.add_argument("host", help="Host name or IP")
     parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEvents.DEFAULT_CAPTURE_DIR + ")")
     parser.add_argument("--sensors_json", help="sensors.json to use for RIO filtering")
+    parser.add_argument("--mcp_username", help="Username for MCP", default="root")
+    parser.add_argument("--mcp_password", help="Password for MCP", default="root")
     args = parser.parse_args()
-    events = MCPEvents(args.host, args.capture_dir, args.sensors_json)
+    events = MCPEvents(args.host, args.mcp_username, args.mcp_password, args.capture_dir, args.sensors_json)
     events.main()
 
 
