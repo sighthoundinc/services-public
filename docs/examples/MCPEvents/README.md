@@ -78,6 +78,31 @@ python3 MCPEventAnnotator.py --sensor_json sensors.json
 Will include an overlay of the sensors in sensors.json on the annotated videos when
 annotating.
 
+## Docker Support
+
+The scripts in the [docker](docker) directory support building and running the examples in a docker container.
+
+### Setup
+Ensure you have docker installed on your host.
+
+### Building
+Run `./docker/build.sh` to build a container which supports running MCPEvents applications.
+
+### Running
+Run the commands as directed above, replacing the `python3` reference with `./docker/run.sh`.
+
+For example:
+```
+./docker/run.sh MCPEvents.py --sensors_json ${sensors_json} --capture_dir ${capture_dir} ${device_ip}
+```
+All paths specified must be absolute paths for the volume mapping to work within the docker container.
+Wrap with $(realpath) as necessary.
+
+The MCPEvents container will restart automatically if an error occurs.
+
+Container names will be set to match the application and device IP address.  Use `docker ps` to list
+containers, and `docker stop <container_name>` to stop a container.
+
 ## Limitations and Future Work
 
 1) The tool only supports region of interest sensors.  Line sensors are not supported.
