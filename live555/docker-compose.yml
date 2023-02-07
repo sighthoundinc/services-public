@@ -2,13 +2,15 @@ version: "2"
 
 services:  
   live555:
-  # TODO: Change to release image
+    container_name: ${LIVE555_CONTAINER_NAME}${SERVICE_GROUP}
     image: ${LIVE555_DOCKER_IMAGE}:${LIVE555_DOCKER_TAG}
     restart: unless-stopped
     volumes:
       - ./test-data:/mnt
     networks:
-      - core_sighthound
+      core_sighthound:
+        aliases:
+          - ${LIVE555_CONTAINER_NAME}${SERVICE_GROUP}
 
 networks:
   core_sighthound:

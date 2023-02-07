@@ -2,6 +2,7 @@ version: "2"
 
 services:
   mcp:
+    container_name: ${MCP_CONTAINER_NAME}${SERVICE_GROUP}
     image: ${MCP_DOCKER_IMAGE}:${MCP_DOCKER_TAG}
     restart: unless-stopped
     mem_limit: 1G
@@ -16,12 +17,10 @@ services:
     env_file:
       - .env
     networks:
-      - core_sighthound
+      core_sighthound:
+        aliases:
+          - ${MCP_CONTAINER_NAME}${SERVICE_GROUP}
 
 networks:
   core_sighthound:
     external: true
-
-volumes:
-  influxdb-persistent:
-  influxdb-persistent-2:
