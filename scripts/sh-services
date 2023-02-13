@@ -22,6 +22,23 @@ function merge_env_files(){
     echo ""
 }
 
+function remove_orphans(){
+    containers=$(docker ps -a -q)
+    for container in $containers; do
+        container_name=$(docker inspect -f '{{.Name}}' "${container}")
+        working_dir=$(docker inspect -f '{{(index .Config.Labels "com.docker.compose.project.working_dir")}}' "${container}")
+        if [[ "${working_dir}" == "${SERVICES_PATH}"* ]]; then
+            echo "Found container ${container_name} with working dir: '${working_dir}'"
+            # If the working dir does not exist anymore and starts with 'SERVICES_PATH', then remove the container
+            if [[ ! -d "${working_dir}" ]]; then
+                echo "Removing orphan container: ${container_name} ${container}"
+                docker rm -f "${container}"
+            fi
+        fi
+
+    done
+}
+
 function clean_media(){
     rm -rf "${MEDIA_PATH:?}/"*
     rm -rf "${DB_PATH:?}/"*
@@ -196,14 +213,14 @@ function apply_to_services(){
     wait
 }
 
-LIST_OF_COMMANDS="merge up down restart edit clean_media"
+LIST_OF_COMMANDS="merge up down restart edit clean_media remove_orphans"
 COMMAND=$1
 shift 1
 case $COMMAND in
     "merge"|"up"|"down"|"restart"|"edit")
         apply_to_services "$COMMAND" $@
         ;;
-    "clean_media")
+    "clean_media"|"remove_orphans")
         "$COMMAND"
         ;;
     "")
