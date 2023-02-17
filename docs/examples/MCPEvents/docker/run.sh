@@ -48,7 +48,7 @@ do
     case $1 in
         -h | --help)       usage; exit 0 ;;
         -s | --sensors_json )   docker_args="${docker_args} -v $2:$2"; shift 2;;
-        -c | --capture_dir)     docker_args="${docker_args} -v $2:$2"; shift 2;;
+        -c | --capture_dir)     docker_args="${docker_args} -v $(dirname $2):$(dirname $2)"; shift 2;;
         -- )               shift; break ;;
         * )                break ;;
     esac
@@ -61,7 +61,7 @@ docker rm ${container_name} > /dev/null 2>&1
 
 set -e
 
-docker run -d  \
+docker run -d \
     ${docker_args} \
     mcpevents python3 ${initial_args}
 

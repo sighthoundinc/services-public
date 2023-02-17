@@ -97,6 +97,7 @@ For example:
 ```
 All paths specified must be absolute paths for the volume mapping to work within the docker container.
 Wrap with $(realpath) as necessary.
+When files in capture_dir use symlinks, the symlink must point to the same capture_dir or one directory above.
 
 The MCPEvents container will restart automatically if an error occurs.
 
