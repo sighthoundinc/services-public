@@ -122,6 +122,7 @@ function up(){
     echo "Bringing up ${service_name}"
     merge "${service}"
     compose_up "${service}" &
+    sleep 1
 }
 
 function compose_up(){
@@ -203,7 +204,6 @@ function apply_to_services(){
             service_full_path="${SERVICES_PATH}/${service}"
             $COMMAND "${service_full_path}"
             echo "####################DONE#######################"
-            sleep 1
         else
             echo "Unknown service: ${service}"
             echo "Available services: ${AVAILABLE_SERVICES}"
