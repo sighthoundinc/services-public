@@ -4,6 +4,15 @@ SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/..)"
 MEDIA_PATH="$(realpath "${SCRIPT_PATH}"/../../media)"
 DB_PATH="$(realpath "${SCRIPT_PATH}"/../../db)"
 
+if command -v docker-compose &> /dev/null
+then
+    # Use `docker-compose`
+    DOCKER_COMPOSE="docker-compose"
+else
+    # Use `docker compose`
+    DOCKER_COMPOSE="docker compose"
+fi
+
 check_endpoint() {
   curl --output /dev/null --silent --head $@ "$1"
 }
@@ -133,7 +142,7 @@ function compose_up(){
     fi
     cd "${service}" || exit
     echo "Starting ${service}"
-    docker-compose up -d
+    ${DOCKER_COMPOSE} up -d
     cd "${SERVICES_PATH}" || exit
 }
 
@@ -141,7 +150,7 @@ function down(){
     service=$1
     echo "Stopping ${service}"
     cd "${service}" || exit
-    docker-compose down
+    ${DOCKER_COMPOSE} down
     cd "${SERVICES_PATH}" || exit
 }
 
