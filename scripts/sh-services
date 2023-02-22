@@ -4,6 +4,15 @@ SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/..)"
 MEDIA_PATH="$(realpath "${SCRIPT_PATH}"/../../media)"
 DB_PATH="$(realpath "${SCRIPT_PATH}"/../../db)"
 
+if command -v docker-compose &> /dev/null
+then
+    # Use `docker-compose`
+    DOCKER_COMPOSE="docker-compose"
+else
+    # Use `docker compose`
+    DOCKER_COMPOSE="docker compose"
+fi
+
 check_endpoint() {
   curl --output /dev/null --silent --head $@ "$1"
 }
@@ -20,6 +29,23 @@ function merge_env_files(){
     echo "Resulting '${output_file}' file:"
     cat "$1"
     echo ""
+}
+
+function remove_orphans(){
+    containers=$(docker ps -a -q)
+    for container in $containers; do
+        container_name=$(docker inspect -f '{{.Name}}' "${container}")
+        working_dir=$(docker inspect -f '{{(index .Config.Labels "com.docker.compose.project.working_dir")}}' "${container}")
+        if [[ "${working_dir}" == "${SERVICES_PATH}"* ]]; then
+            echo "Found container ${container_name} with working dir: '${working_dir}'"
+            # If the working dir does not exist anymore and starts with 'SERVICES_PATH', then remove the container
+            if [[ ! -d "${working_dir}" ]]; then
+                echo "Removing orphan container: ${container_name} ${container}"
+                docker rm -f "${container}"
+            fi
+        fi
+
+    done
 }
 
 function clean_media(){
@@ -75,6 +101,10 @@ function depends(){
         
         # Loop through the endpoints
         for endpoint in $endpoints; do
+            if [ -f "/proc/net/fib_trie" ] ; then
+                gateway_ip=$(awk '/32 host/ { print i } {i=$2}' /proc/net/fib_trie | head -n 1 | awk -F'.' '{$NF="1"}1' OFS='.')
+                endpoint=${endpoint/gateway_ip/$gateway_ip}
+            fi
             # Loop for 15 seconds or until the endpoint is up
             for ((i=0; i<15; i++)); do
                 if check_endpoint "$endpoint"; then
@@ -88,7 +118,8 @@ function depends(){
             done
             # Endpoint was not up after 45 seconds, so stop the execution
             echo "Error: endpoint '$endpoint' was not up after 45 seconds"
-            return 1
+            echo "Continuing execution"
+            return 0
         done
     fi
     return 0
@@ -105,6 +136,7 @@ function up(){
     echo "Bringing up ${service_name}"
     merge "${service}"
     compose_up "${service}" &
+    sleep 1
 }
 
 function compose_up(){
@@ -115,7 +147,7 @@ function compose_up(){
     fi
     cd "${service}" || exit
     echo "Starting ${service}"
-    docker-compose up -d
+    ${DOCKER_COMPOSE} up -d
     cd "${SERVICES_PATH}" || exit
 }
 
@@ -123,7 +155,7 @@ function down(){
     service=$1
     echo "Stopping ${service}"
     cd "${service}" || exit
-    docker-compose down
+    ${DOCKER_COMPOSE} down
     cd "${SERVICES_PATH}" || exit
 }
 
@@ -186,7 +218,6 @@ function apply_to_services(){
             service_full_path="${SERVICES_PATH}/${service}"
             $COMMAND "${service_full_path}"
             echo "####################DONE#######################"
-            sleep 1
         else
             echo "Unknown service: ${service}"
             echo "Available services: ${AVAILABLE_SERVICES}"
@@ -196,14 +227,14 @@ function apply_to_services(){
     wait
 }
 
-LIST_OF_COMMANDS="merge up down restart edit clean_media"
+LIST_OF_COMMANDS="merge up down restart edit clean_media remove_orphans"
 COMMAND=$1
 shift 1
 case $COMMAND in
     "merge"|"up"|"down"|"restart"|"edit")
         apply_to_services "$COMMAND" $@
         ;;
-    "clean_media")
+    "clean_media"|"remove_orphans")
         "$COMMAND"
         ;;
     "")
