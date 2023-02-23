@@ -118,8 +118,22 @@ function depends(){
             done
             # Endpoint was not up after 45 seconds, so stop the execution
             echo "Error: endpoint '$endpoint' was not up after 45 seconds"
-            echo "Continuing execution"
+            echo "Continuing execution."
             return 0
+        done
+
+        files=$(grep "file" "${service}"/depends | awk '{print $2}')
+
+        # Loop through the files
+        for file in $files; do
+            if [ -f "$file" ]; then
+                # File is up, so print "service ready"
+                echo "File '$file' is available."
+                return 0
+            else
+                echo "File is not available: '$file'. Stopping execution"
+                return 1
+            fi
         done
     fi
     return 0

@@ -1,1 +1,2 @@
 endpoint http://gateway_ip:15672/api/nodes
+file /data/sighthound/license/sighthound-license.json
