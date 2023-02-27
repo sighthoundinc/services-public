@@ -209,6 +209,27 @@ function restart(){
     up "${service}"
 }
 
+function enable(){
+    service=$1
+    if [ -f "${service}/disabled" ]; then
+        echo "Enabling ${service}."
+        rm  "${service}/disabled"
+    else
+        echo "Service ${service} was already enabled."
+    fi
+}
+
+function disable(){
+    service=$1
+    if [ -f "${service}/disabled" ]; then
+        echo "Skipping ${service} : disabled file found."
+        return
+    else
+        echo "Disabling ${service}"
+        touch "${service}/disabled"
+    fi
+}
+
 function element_in_list(){
     element=$1
     shift
@@ -271,11 +292,11 @@ function apply_to_services(){
     wait
 }
 
-LIST_OF_COMMANDS="merge up down restart edit clean_media remove_orphans"
+LIST_OF_COMMANDS="merge up down restart edit enable disable clean_media remove_orphans"
 COMMAND=$1
 shift 1
 case $COMMAND in
-    "merge"|"up"|"down"|"restart"|"edit")
+    "merge"|"up"|"down"|"restart"|"edit"|"enable"|"disable")
         apply_to_services "$COMMAND" $@
         ;;
     "clean_media"|"remove_orphans")
