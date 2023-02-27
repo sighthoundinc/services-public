@@ -46,14 +46,22 @@ all events recieved from SIO.  Events are captured when more than group_events_s
 between events OR when up to group_events_max_length of time expires without a separation gap.
 These two values are currently set to 5 seconds and 60 seconds respectively and can be tuned for the application in
 MCPEvents.py
+#### Using Event Generator Output
+
+The command
+```
+python3 MCPEvents.py --use_events 10.1.10.154
+```
+Captures events using the Event Analytics module configured on the device with `sensorsConfigFile` pointing
+to a sensor configuration defining events to capture.
 
 #### Filtering based on ROI
 
 The command
 ```
-python3 MCPEvents.py --sensor_json sensors.json 10.1.10.154
+python3 MCPEvents.py --sensors_json sensors.json 10.1.10.154
 ```
-Will filter all captures based on regions defined in sensors.json, where the
+Will postprocess filter all captures based on regions defined in sensors.json, where the
 sensors.json file can be built and exported at http://public-sh-sensor-config-dev.s3-website-us-east-1.amazonaws.com/
 using an image captured from an export of one of the images of the videos captured in the step above.
 
@@ -72,11 +80,23 @@ Will annotate the videos captured in the previous `MCPEvents` capture step, base
 
 The command:
 ```
-python3 MCPEventAnnotator.py --sensor_json sensors.json
+python3 MCPEventAnnotator.py --sensors_json sensors.json
 ```
 
 Will include an overlay of the sensors in sensors.json on the annotated videos when
-annotating.
+annotating.  This assumes events were captured using the `--use_events` option and a configured Event Analytics
+module running in the pipeline.  See the "Postprocessing sensors" section below to run without event analytics
+
+#### Postprocessing Sensors
+The command:
+```
+python3 MCPEventAnnotator.py --postprocess_sensors --sensors_json sensors.json
+```
+
+Will include an overlay of the sensors in sensors.json on the annotated videos when
+annotating.  Use the `--postprocess_sensors` option when the original MCPEvents capture did not
+come from an SIO pipeline with the Event Analytics module enabled (you did not have `sensorsConfigFile` setup
+on the pipeline when MCPEvents captured the output data and did not capture events using the --use_events option.)
 
 ## Docker Support
 
