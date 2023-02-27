@@ -18,6 +18,7 @@ check_endpoint() {
 }
 
 # Merge the services
+# First file has the highest priority
 function merge_env_files(){
     output_file=$1
     shift 1
@@ -53,6 +54,26 @@ function clean_media(){
     rm -rf "${DB_PATH:?}/"*
 }
 
+function save_arch_info(){
+    if [ ! -d "${SERVICES_PATH}"/conf ]; then
+        mkdir -p "${SERVICES_PATH}"/conf
+    fi
+
+    if [ "$(uname -m)" == "x86_64" ]; then
+        echo "SH_ARCH=-amd64" > "${SERVICES_PATH}"/conf/0010-arch.env
+    elif [ "$(uname -m)" == "aarch64" ]; then
+        L4TBASE_VERSION=32.7.3
+        if command -v bai-osinfo &> /dev/null
+        then
+            L4TBASE_VERSION=$(bai-osinfo -l)
+        fi
+        echo "SH_ARCH=-r${L4TBASE_VERSION}-arm64v8" > "${SERVICES_PATH}"/conf/0010-arch.env
+    else
+        echo "Unknown architecture: $(uname -m)"
+        exit 1
+    fi
+}
+
 function merge(){
     service=$1
     touch "${service}/.env"
@@ -61,6 +82,15 @@ function merge(){
     # Check for .env files
     mkdir -p "${service}"/conf
     for env_file in "${service}"/conf/*.env; do
+        if [ -f "${env_file}" ]; then
+            env_files_to_merge="${env_files_to_merge} ${env_file}"
+        fi
+    done
+
+    # Check for global .env files
+    mkdir -p "${SERVICES_PATH}"/conf
+    save_arch_info
+    for env_file in "${SERVICES_PATH}"/conf/*.env; do
         if [ -f "${env_file}" ]; then
             env_files_to_merge="${env_files_to_merge} ${env_file}"
         fi
@@ -159,18 +189,18 @@ function compose_up(){
         echo "Skipping ${service} : depends failed"
         return
     fi
-    cd "${service}" || exit
+    cd "${service}" || exit 1
     echo "Starting ${service}"
     ${DOCKER_COMPOSE} up -d
-    cd "${SERVICES_PATH}" || exit
+    cd "${SERVICES_PATH}" || exit 1
 }
 
 function down(){
     service=$1
     echo "Stopping ${service}"
-    cd "${service}" || exit
+    cd "${service}" || exit 1
     ${DOCKER_COMPOSE} down
-    cd "${SERVICES_PATH}" || exit
+    cd "${SERVICES_PATH}" || exit 1
 }
 
 function restart(){
