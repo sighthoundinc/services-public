@@ -74,16 +74,15 @@ Then copy the test video file to the live555 mount path:
 ```bash
 mkdir -p ./live555/test-data
 # cp or scp
-cp <my-video>  ./live555/test-data/myvideo.mp4
+cp <my-video>  ./live555/test-data/my-video.mp4
 ```
 
 And finally, point SIO to live555:
 
 ```bash
 cp ./sio/examples/live555/* ./sio/conf
-echo "SIO_ENTRYPOINT=/etc/sio/sio.live555.json" >> ./sio/conf/0001-edit.conf
 # Check the configuration file, verify paramets and save
-./scripts/sh-services edit live555
+./scripts/sh-services edit sio
 ```
 
 ### All devices
@@ -99,6 +98,19 @@ and to edit the configuration of services, run:
 ```bash
 ./scripts/sh-services edit all
 ```
+
+### Test
+
+#### Visual test
+
+You can use SIOOutput example to test that SIO Analytics is working, just run:
+
+```bash
+cd ./examples/SIO_RTSP_Output
+docker compose up
+```
+
+And open VLC at `rtsp://localhost:8554/live`.
 
 ## Available services
 
