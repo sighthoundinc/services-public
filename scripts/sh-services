@@ -14,7 +14,7 @@ else
 fi
 
 check_endpoint() {
-  curl --output /dev/null --silent --head $@ "$1"
+  curl --connect-timeout 2 --output /dev/null --silent --head $@ "$1"
 }
 
 check_service_up() {
@@ -152,7 +152,12 @@ function depends(){
         # Loop through the endpoints
         for endpoint in $endpoints; do
             if [ -f "/proc/net/fib_trie" ] ; then
-                gateway_ip=$(awk '/32 host/ { print i } {i=$2}' /proc/net/fib_trie | head -n 1 | awk -F'.' '{$NF="1"}1' OFS='.')
+                if [ -f /.dockerenv ]; then
+                    # inside docker
+                    gateway_ip=$(awk '/32 host/ { print i } {i=$2}' /proc/net/fib_trie | head -n 1 | awk -F'.' '{$NF="1"}1' OFS='.')
+                else
+                    gateway_ip=$(awk '/32 host/ { print i } {i=$2}' /proc/net/fib_trie | head -n 1 )
+                fi
                 endpoint=${endpoint/gateway_ip/$gateway_ip}
             fi
             up=0
