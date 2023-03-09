@@ -2,7 +2,7 @@
 import threading
 import RTSPStream as rtsp
 import AMQPListener as amqp
-from SIODrawerCallback import SIODrawerCallback
+from SIODrawer import SIODrawer
 from MCP import MCPClient
 import os
 
@@ -37,9 +37,9 @@ def main():
     # Create MCP Client
     mcp_client = MCPClient(mcp_conf)
     # Create SIO Drawer Callback
-    sio_drawer_callback = SIODrawerCallback(sio_factory, mcp_client)
+    sio_drawer = SIODrawer(mcp_client, stream_factory=sio_factory)
     # Register the callback
-    amqp_listener.set_callback(sio_drawer_callback.callback)
+    amqp_listener.set_callback(sio_drawer.stream_callback)
     def start_amqp():
         amqp_listener.start()
     # Start the stream and the listener in parallel

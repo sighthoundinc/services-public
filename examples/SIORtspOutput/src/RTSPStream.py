@@ -59,25 +59,7 @@ class SighthoundRtspMediaFactory(GstRtspServer.RTSPMediaFactory):
         # instead of changing the image shape as it affects the image quality.
         self.frame = cv2.resize(self.frame, (self.resize_width, self.resize_height), \
             interpolation = cv2.INTER_LINEAR)
-    
-    def draw_a_circle(self):
-        # Calculate the center point of the image
-        center = (int(self.width/2), int(self.height/2))
-        # Draw a circle at the center point
-        radius = 50
-        color = (0, 0, 255) # BGR format
-        thickness = 2
-        cv2.circle(self.frame, center, radius, color, thickness)
 
-    def draw_rectangle(self, x, y, w, h, title=None, color = (0, 255, 0)):
-        # Draw a rectangle
-        cv2.rectangle(self.frame, (x, y), (x+w, y+h), color, 2)
-        # Draw a title
-        if title != None:
-            cv2.putText(self.frame, title, (x, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
-
-    
     def add_frame_number(self):
         self.write_text(str(self.number_frames), location="top_right")
         print("Frame number: ", self.number_frames)
