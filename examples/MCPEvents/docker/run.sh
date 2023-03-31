@@ -31,10 +31,6 @@ fi
 SHORTOPTS="hs:c:"
 LONGOPTS="help,sensors_json:,capture_dir:"
 ARGS=$(getopt --options $SHORTOPTS --longoptions $LONGOPTS --name $PROGNAME -- "$@" )
-if [ $? != 0 ]; then
-   usage
-   exit 1
-fi
 
 if [ $# -eq 0 ]; then
     echo "Must specify at least one argument"

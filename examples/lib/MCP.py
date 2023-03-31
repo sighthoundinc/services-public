@@ -14,7 +14,7 @@ class MCPClient:
             print(f"Connecting to mcp://{self.user}:*****@{self.host}:{self.port}")
         else:
             print(f"Connecting to mcp://{self.host}:{self.port}")
-    
+
     def get(self, url):
         if self.user and self.password:
             auth = (self.user, self.password)
@@ -31,12 +31,12 @@ class MCPClient:
     def list_sources(self):
         url = f"http://{self.host}:{self.port}/hlsfs/source"
         return self.get(url).json()
-    
+
     # curl mcp:9097/hlsfs/source/<source_id>/stats
     def get_stats(self, source_id):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/stats"
         return self.get(url).json()
-        
+
     # curl mcp:9097/hlsfs/source/<source_id>/image/<image>
     def get_image(self, source_id, image):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/image/{image}"
@@ -52,7 +52,7 @@ class MCPClient:
             img = Image.open(BytesIO(response.content))
             arr = np.array(img)
             return arr
-        
+
     # curl mcp:9097/hlsfs/source/<source_id>/segment/<video>
     def download_video(self, source_id, video, filepath):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/segment/{video}"
@@ -60,9 +60,9 @@ class MCPClient:
 
         if response.status_code != 200:
             if response.status_code == 404:
-                raise Exception("Video not found")
+                raise Exception(f"Video {video} not found for source {source_id}")
             else:
-                raise Exception("Error downloading video", response.status_code)
+                raise Exception(f"Error downloading video {video} to {filepath} for source {source_id}", response.status_code)
         else:
             # Save image to file
             with open(filepath, 'wb') as f:
@@ -108,7 +108,7 @@ class MCPClient:
                 raise Exception("Error downloading image", response.status_code)
         else:
             return response.json()
-        
+
     # curl mcp:9097/hlsfs/source/<source_id>/latest-image
     def get_latest_image(self, source_id):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/latest-image"
@@ -137,7 +137,7 @@ class MCPClient:
                 raise Exception("Error downloading HLS", response.status_code)
         else:
             return response.text
-        
+
     # curl mcp:9097/hlsfs/source/<source_id>/<start>..<end>.m3u8
     def get_m3u8(self, source_id, start, end):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/{start}..{end}.m3u8"
@@ -151,4 +151,3 @@ class MCPClient:
         else:
             return response.text
 
-        
