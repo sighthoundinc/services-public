@@ -6,13 +6,13 @@ from lib.AMQPListener import AMQPListener
 from lib.MCP import MCPClient
 from EventSegment import EventSegment
 from ROIFilter import ROIFilter
+from MCPEventAnnotator import MCPEventAnnotator
 import datetime
 from pathlib import Path
 import json
 import m3u8
 
 class MCPEvents:
-    DEFAULT_CAPTURE_DIR="video_captures"
     def get_args(self, args):
         amqp_conf, mcp_conf = {}, {}
         amqp_conf["host"] = os.environ.get("AMQP_HOST", args.host)
@@ -36,7 +36,7 @@ class MCPEvents:
         capture_dir = args.capture_dir
         # Location to write video captures
         if not capture_dir:
-            capture_dir = MCPEvents.DEFAULT_CAPTURE_DIR
+            capture_dir = MCPEventAnnotator.DEFAULT_CAPTURE_DIR
 
         self.path_prefix=Path(capture_dir)
         # The current event segment dict organized by sourceId, waiting for events to complete
@@ -55,11 +55,14 @@ class MCPEvents:
             print("Generating events based on event generator output")
             self.use_events = True
             if args.sensors_json:
-                print("Ignoring sensors.json argument since use_events is specified")
+                print("Ignoring sensors.json argument for event capture since use_events is specified")
         else:
             if args.sensors_json:
                 print("Generating events based on sensors.json")
                 self.roi_filter = ROIFilter(args.sensors_json)
+        if args.annotate:
+            self.annotator = MCPEventAnnotator(capture_dir = capture_dir,
+                                               sensors_json = args.sensors_json)
 
     def signal_handler(sig, frame):
         print('Exit due to ctrl->c')
@@ -95,9 +98,14 @@ class MCPEvents:
             filepath_ts.parent.mkdir(parents=True, exist_ok=True)
             video_name = filepath_ts.relative_to(filepath_ts.parent.parent)
             self.mcp_client.download_video(source, video_name, filepath_ts)
-        with open(dirpath / Path(f"{filename_base}.m3u8"), "w") as file:
+        vidfile = dirpath / Path(f"{filename_base}.m3u8")
+        with open(vidfile, "w") as file:
             file.write(m3u8_content)
-        event_segment.write_json(dirpath_json / Path(f"{filename_base}.json"))
+        json_file = dirpath_json / Path(f"{filename_base}.json")
+        event_segment.write_json(json_file)
+        if self.annotator:
+            self.annotator.create_annotation(json_file, vidfile)
+
 
 
     def handle_media_event_callback(self, media_event, sourceId):
@@ -196,11 +204,12 @@ class MCPEvents:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("host", help="Host name or IP")
-    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEvents.DEFAULT_CAPTURE_DIR + ")")
+    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEventAnnotator.DEFAULT_CAPTURE_DIR + ")")
     parser.add_argument("--sensors_json", help="sensors.json to use for RIO filtering")
     parser.add_argument("--mcp_username", help="Username for MCP", default="root")
     parser.add_argument("--mcp_password", help="Password for MCP", default="root")
     parser.add_argument("--use_events", help="Use only event generator events to select recording intervals", action='store_true')
+    parser.add_argument("--annotate", help="Create annotated video after event completion", action='store_true')
     args = parser.parse_args()
     events = MCPEvents(args)
     events.main()

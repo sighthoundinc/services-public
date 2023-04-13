@@ -4,7 +4,6 @@ import os
 import cv2
 import json
 from EventSegment import EventSegment
-from MCPEvents import MCPEvents
 from ROIFilter import ROIFilter
 import argparse
 import numpy as np
@@ -38,11 +37,11 @@ class MCPEventAnnotator:
         self.postprocess_sensors = postprocess_sensors
 
     def get_sensor_name(self, sensor_id):
+        region_name = "unknown"
         if self.roi_filter:
             region = self.roi_filter.get_roi_region(sensor_id)
-        region_name = "unknown"
-        if region is not None:
-            region_name = region.name
+            if region is not None:
+                region_name = region.name
         return region_name
 
     def init_sensor_id(self, sensor_id, text = "unknown"):
@@ -100,7 +99,7 @@ class MCPEventAnnotator:
         text_offset = 150
         for sensor_id in self.sensor_annotations:
             annotated = True
-            cv2.putText(frame, self.sensor_annotations[sensor_id]['text'], (40,text_offset), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.putText(frame, self.sensor_annotations[sensor_id].get('text',''), (40,text_offset), cv2.FONT_HERSHEY_SIMPLEX,
                 1.15 , self.sensor_annotations[sensor_id]['text_color'], 2, cv2.LINE_AA, False)
             text_offset += 40
         return annotated
@@ -229,7 +228,11 @@ class MCPEventAnnotator:
 
         return vidfiles, start_timestamps
 
-    def create_annotation(self, jsonfile, vidfile, annotated_vid):
+    def create_annotation(self, jsonfile, vidfile):
+        annotated_subdir = Path(vidfile).parent / Path(self.annotated_subdir)
+        annotated_subdir.mkdir(parents=True, exist_ok=True)
+        annotated_vid = Path(annotated_subdir)/Path(jsonfile).stem
+        print(f"Creating video at {annotated_vid} for video at {vidfile} with json content at {jsonfile}")
         event_segment = json.load(open(jsonfile))
         frame_count = 0
         event_list_index = 0
@@ -269,7 +272,6 @@ class MCPEventAnnotator:
                         next_event = event_segment['events_list'][event_list_index]
                         while frame_ts <= next_event['frameTimestamp'] <= frame_ts_next:
                             if self.annotate_frame_with_event(frame, next_event):
-                                print(f"Wrote frame {frame_count} and annotated with event at timestamp {next_event['frameTimestamp']}")
                                 annotated_frame_count = annotated_frame_count +1
                                 annotated_frame = True
                                 anypipe_frame_ts = next_event['frameTimestamp']
@@ -286,14 +288,12 @@ class MCPEventAnnotator:
                         self.annotate_frame_with_timestamp(frame, anypipe_frame_ts, frame_ts)
                     # Write the frame to the output files
                     output.write(frame)
-                    if not annotated_frame:
-                        print(f"Wrote frame {frame_count} without event annotation")
                     frame = next_frame
                     ret = next_ret
                 else:
                     print("Stream ended")
                     stream_ended = True
-            print(f"Processed {len(event_segment['events_list'])} events, annotated {annotated_frame_count} frames")
+            print(f"Video at {annotated_vid} complete, processed {len(event_segment['events_list'])} events, annotated {annotated_frame_count} frames")
         output.release()
 
     def main(self):
@@ -312,8 +312,7 @@ class MCPEventAnnotator:
                 if len(capture_dir_matches) == 1:
                     vidfile = capture_dir_matches[0]
             if vidfile:
-                annotated_vid = annotated_subdir/jsonfile.stem
-                self.create_annotation(jsonfile, vidfile, annotated_vid)
+                self.create_annotation(jsonfile, vidfile)
             else:
                 print(f"Could not find video to match {jsonfile}, no annotation performed")
         if not has_json_file:
@@ -323,7 +322,7 @@ class MCPEventAnnotator:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEvents.DEFAULT_CAPTURE_DIR + ")", default=MCPEvents.DEFAULT_CAPTURE_DIR)
+    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEventAnnotator.DEFAULT_CAPTURE_DIR + ")", default=MCPEventAnnotator.DEFAULT_CAPTURE_DIR)
     parser.add_argument("--sensors_json", help="sensors.json to use for RIO display")
     parser.add_argument("--timestamps", help="Whether to display timestamps on the video (default is " + str(MCPEventAnnotator.DEFAULT_DISPLAY_TIMESTAMPS) + ")", default=MCPEventAnnotator.DEFAULT_DISPLAY_TIMESTAMPS)
     parser.add_argument("--postprocess_sensors", help="Whether to post process sensors or only use sensor data in event (default is " + str(MCPEventAnnotator.DEFAULT_POSTPROCESS_SENSORS) + ")", default=MCPEventAnnotator.DEFAULT_POSTPROCESS_SENSORS)

@@ -97,6 +97,17 @@ annotating.  Use the `--postprocess_sensors` option when the original MCPEvents 
 come from an SIO pipeline with the Event Analytics module enabled (you did not have `sensorsConfigFile` setup
 on the pipeline when MCPEvents captured the output data and did not capture events using the --use_events option.)
 
+### Combined event capture and annotation
+
+The command
+```
+python3 MCPEvents.py --use_events --annotate --sensors_json sensors.json 10.1.10.154
+```
+will both capture events from 10.1.10.154 and annotate those events using the `sensors.json`
+file to draw detailed sensor event information.  The `annotated` subdirectory will contain
+annotated videos with names matching the non-annotated .m3u file generated in the base
+capture directory.
+
 ## Docker Support
 
 The scripts in the [docker](docker) directory support building and running the examples in a docker container.
