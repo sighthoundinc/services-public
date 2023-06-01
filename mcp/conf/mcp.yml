@@ -12,12 +12,16 @@ backend:
 sqlite:
   enable: true
   path: /data/sighthound/db/sqlite.db
+  auditLogFile: /data/sighthound/logs/mcp/sqlite.log
+  auditMaxMb: 100
 media:
   path: /data/sighthound/media
 cleaner:
   enable: true
   maxDiskUtilization: 90
   maxMediaSize: 500 MB
+  auditLogFile: /data/sighthound/logs/mcp/cleaner.log
+  auditMaxMb: 100
 logs:
   level: info
   format: human-readable
