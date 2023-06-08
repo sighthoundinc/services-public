@@ -9,7 +9,6 @@ from ROIFilter import ROIFilter
 from MCPEventAnnotator import MCPEventAnnotator
 import datetime
 from pathlib import Path
-import json
 import m3u8
 
 class MCPEvents:
@@ -64,7 +63,7 @@ class MCPEvents:
             self.annotator = MCPEventAnnotator(capture_dir = capture_dir,
                                                sensors_json = args.sensors_json)
 
-    def signal_handler(sig, frame):
+    def signal_handler(self, sig, frame):
         print('Exit due to ctrl->c')
         sys.exit(0)
 
@@ -92,6 +91,9 @@ class MCPEvents:
         filename_base=f"{source}_{time_str}_{duration_s}s_{len(event_segment.events_list)}_events"
         print(f"Event segment complete, capturing video at {dirpath}/{filename_base}")
         m3u8_content = self.mcp_client.get_m3u8(source, int(event_segment.start_ts/1000),int(event_segment.end_ts/1000))
+        # Remove all #EXT-UNIX-TIMESTAMP-MS lines from the m3u8 file
+        # m3u8 library doesn't support this tag
+        m3u8_content = '\n'.join([line for line in m3u8_content.split('\n') if not line.startswith("#EXT-UNIX-TIMESTAMP-MS")])
         playlist = m3u8.loads(m3u8_content)
         for segment in playlist.segments:
             filepath_ts = dirpath / Path(segment.uri)
@@ -106,15 +108,16 @@ class MCPEvents:
         if self.annotator:
             self.annotator.create_annotation(json_file, vidfile)
 
-
-
+    # This method is called when a media event is received from the MCP
     def handle_media_event_callback(self, media_event, sourceId):
+        # Get the type and message of the media event
         type = media_event.get("type", "unknown")
         msg = media_event.get("msg", "unknown")
+        # If the media event is a video_file_closed event, add it to the current event segment
+        # for the source ID, or to the completed event segments if it's already completed
         if type == "video_file_closed":
             if sourceId in self.current_event_seg:
                 event_seg = self.current_event_seg[sourceId]
-                msg = media_event.get("msg", "unknown")
                 event_seg.videos.append(media_event)
             completed_event_segments = self.completed_event_seg.get(sourceId, [])
             for event_seg in completed_event_segments:
@@ -165,7 +168,7 @@ class MCPEvents:
                 if data['frameTimestamp'] - current_event_seg.start_ts > \
                         self.group_events_max_length :
                     print(f"Event length exceeded {self.group_events_max_length} ms, restarting event segment")
-                    self.new_event_segment(data['sourceId'],current_event_seg, data['frameTimestamp'])
+                    self.new_event_segment(data['sourceId'],current_event_seg)
                     del self.current_event_seg[data['sourceId']]
 
                 elif data['frameTimestamp'] - current_event_seg.end_ts > \
@@ -173,7 +176,7 @@ class MCPEvents:
                     print(f"More than {self.group_events_separation_ms} ms between events, restarting event segment")
                     print(f"Current frame timestamp is {self.frame_timestamp_to_timestr(data['frameTimestamp'])}"\
                             f" last event timestamp was {self.frame_timestamp_to_timestr(current_event_seg.end_ts)}")
-                    self.new_event_segment(data['sourceId'],current_event_seg, data['frameTimestamp'])
+                    self.new_event_segment(data['sourceId'],current_event_seg)
                     del self.current_event_seg[data['sourceId']]
 
                 if 'metaClasses' in data and 'sourceId' in data:
@@ -192,7 +195,8 @@ class MCPEvents:
 
 
     def stop(self):
-        self.listener.stop()
+        if self.listener:
+            self.listener.stop()
 
     def main(self):
         self.start()

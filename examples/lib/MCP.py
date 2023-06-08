@@ -2,7 +2,6 @@ import requests
 from PIL import Image
 import numpy as np
 from io import BytesIO
-import time
 
 class MCPClient:
     def __init__(self, conf):
@@ -150,4 +149,14 @@ class MCPClient:
                 raise Exception("Error downloading HLS:", url, ":", response.status_code)
         else:
             return response.text
+        
+    # curl mcp:9097/hlsfs/source/<source_id>/<start>..<end>.m3u8
+    def get_m3u8_playlist(self, source_id, start, end):
+        import m3u8
+        m3u8_content = self.get_m3u8(source_id, start, end)
+        # Remove all #EXT-UNIX-TIMESTAMP-MS lines from the m3u8 file
+        # m3u8 library doesn't support this tag
+        m3u8_content = '\n'.join([line for line in m3u8_content.split('\n') if not line.startswith("#EXT-UNIX-TIMESTAMP-MS")])
+        return m3u8.loads(m3u8_content)
+
 
