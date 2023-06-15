@@ -1,0 +1,43 @@
+name: Sync Public Branch on Release Tag
+
+on:
+  push:
+    tags:
+      - 'release_*'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # fetch the entire history
+
+      # Setup Git Configurations
+      - name: Set Git Config
+        run: |
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+
+      # To create the public branch:
+      # git checkout v1.2.0
+      # git checkout -b public
+      # FILES=$(git ls-files)
+      # git reset --soft $(git rev-list --max-parents=0 main)
+      # for i in $(echo ${FILES}| cut -d$'\n' -f1) ; do git add "$i" ; done
+      # git commit -m "v1.2.0"
+      # git push origin public
+
+      # Push squashed commit to public branch
+      - name: Push squashed commit to public branch
+        run: |
+          git checkout ${GITHUB_REF##*/}
+          FILES=$(git ls-files)
+          git checkout public
+          git checkout ${GITHUB_REF##*/} -- .
+          for i in $(echo ${FILES}| cut -d$'\n' -f1) ; do git add "$i" ; done
+          git commit -m "${GITHUB_REF##*/}"
+          git push origin public

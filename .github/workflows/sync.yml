@@ -1,0 +1,48 @@
+name: Sync Repositories
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # Checkout the services-private repository
+      - name: Checkout services-private
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # fetch the entire history and tags
+
+      # Setup SSH Key
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          echo "${{ secrets.PUBLIC_SERVICES_SSH_KEY }}" > /tmp/temp_ssh_key
+          chmod 600 /tmp/temp_ssh_key
+
+      # Push main branch to services repository
+      - name: Push public branch
+        env:
+          SSH_KEY: /tmp/temp_ssh_key
+        run: |
+          git remote add services git@github.com:sighthoundinc/services.git
+          GIT_SSH_COMMAND="ssh -i $SSH_KEY" git push services public:public
+
+      # Push tags to services repository
+      # - name: Push tags
+      #   env:
+      #     SSH_KEY: /tmp/temp_ssh_key
+      #   run: |
+      #     tags=$(git tag -l "v*")
+      #     for tag in $tags; do
+      #       GIT_SSH_COMMAND="ssh -i $SSH_KEY" git push services $tag
+      #     done
+
+      # Remove temporary SSH key file
+      - name: Cleanup SSH Key
+        if: always()
+        run: |
+          rm /tmp/temp_ssh_key
+
