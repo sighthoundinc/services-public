@@ -12,9 +12,7 @@
             "amqpExchange":"anypipe",
             "amqpUser":"guest",
             "amqpPassword":"guest",
-            "amqpErrorOnFailure":"true",
-            "extensionModules": "/lib/sio/plugins/DistanceSensor.py",
-            "extensionConfigurations": "/etc/sio/sio.live555.json"
+            "amqpErrorOnFailure":"true"
         }
     }
 }

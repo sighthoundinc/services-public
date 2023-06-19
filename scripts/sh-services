@@ -1,0 +1,116 @@
+#!/bin/bash
+SCRIPT_PATH="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/..)"
+MEDIA_PATH="$(realpath "${SCRIPT_PATH}"/../../media)"
+DB_PATH="$(realpath "${SCRIPT_PATH}"/../../db)"
+
+# Merge the services
+function merge_env_files(){
+    output_file=$1
+    shift 1
+    env_files=$*
+    echo "Merging ${env_files} into ${output_file}"
+    sort -u -t '=' -k 1,1 "$@" > "$1"
+    sed -i -e '/^[ \t]*#/d' "$1"
+    echo "Resulting file:"
+    cat "$1"
+    echo ""
+}
+
+function clean_media(){
+    rm -rf "${MEDIA_PATH:?}/"*
+    rm -rf "${DB_PATH:?}/"*
+}
+
+function merge(){
+    service=$1
+    touch "${service}/.env"
+    env_files_to_merge="${service}/.env"
+
+    # Check for .env files
+    for env_file in "${service}"/conf/*.env; do
+        if [ -f "${env_file}" ]; then
+            env_files_to_merge="${env_files_to_merge} ${env_file}"
+        fi
+    done
+            
+    merge_env_files "${service}"/.env ${env_files_to_merge}
+
+}
+
+function edit(){
+    service=$1
+    merge "${service}"
+    echo "Editing ${service}"
+    touch "${service}/conf/0001-edit.env"
+    # Remove all comments from edit file
+    sed -i -e '/^[ \t]*#/d' "${service}/conf/0001-edit.env"
+    # Add the .env as commented lines to the edit 
+    sed 's/^/# /' "${service}/.env" >> "${service}/conf/0001-edit.env"
+    # Edit the edit file
+    vi "${service}/conf/0001-edit.env"
+    merge "${service}"    
+}
+
+function up(){
+    service=$1
+    merge "${service}"
+    echo "Starting ${service}"
+    cd "${service}" || exit
+    docker-compose up -d
+    cd "${SERVICES_PATH}" || exit
+}
+
+function down(){
+    service=$1
+    echo "Stopping ${service}"
+    cd "${service}" || exit
+    docker-compose down
+    cd "${SERVICES_PATH}" || exit
+}
+
+function restart(){
+    service=$1
+    down "${service}"
+    up "${service}"
+}
+
+function apply_to_services(){
+    COMMAND=$1
+    shift 1
+    SERVICE_FILTER=$1
+    shift 1
+    # Iterate services
+    for service in "${SERVICES_PATH}"/*; do
+        if [ -d "${service}" ]; then
+        # Check for Docker compose file
+            if [ -f "${service}/docker-compose.yml" ]; then
+                # Check parameters
+                if [ "$SERVICE_FILTER" == "" ] || [[ "${service}" =~ $SERVICE_FILTER ]]; then
+                    echo "Applying ${COMMAND} to ${service}"
+                    $COMMAND "${service}" $@
+                fi
+            else
+                echo "Skipping ${service} : No docker-compose.yml file found"
+            fi
+        fi
+    done
+}
+
+LIST_OF_COMMANDS="merge up down restart edit clean_media"
+COMMAND=$1
+shift 1
+case $COMMAND in
+    "merge"|"up"|"down"|"restart"|"edit")
+        apply_to_services "$COMMAND" $@
+        ;;
+    "clean_media")
+        "$COMMAND"
+        ;;
+    "")
+        echo "No command specified, choose one from the list: ${LIST_OF_COMMANDS}"
+        ;;
+    *)
+        echo "Unknown command: ${COMMAND}, choose one from the list: ${LIST_OF_COMMANDS}"
+        ;;
+esac

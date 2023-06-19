@@ -1,6 +1,6 @@
 version: "2"
 
-services:  
+services:
   sio:
     image: ${SIO_DOCKER_IMAGE}:${SIO_DOCKER_TAG}${SIO_ARCH}
     restart: always
@@ -12,11 +12,15 @@ services:
       - /data/sighthound/.cache:/root/.sio/modelCache
     env_file:
       - .env
-    command: > 
-      /sighthound/sio/bin/runPipelineSet ${SIO_ENTRYPOINT}
+    entrypoint: /bin/bash
+    stdin_open: true
+    tty: true
     networks:
       - core_sighthound
+      - sh-device-ui_sh-ui-net
 
 networks:
   core_sighthound:
+    external: true
+  sh-device-ui_sh-ui-net:
     external: true

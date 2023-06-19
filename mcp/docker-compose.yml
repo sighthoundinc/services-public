@@ -1,30 +1,18 @@
 version: "2"
 
 services:
-  influxdb:
-    image: influxdb:2.0.7
-    environment:
-      DOCKER_INFLUXDB_INIT_MODE: setup
-      DOCKER_INFLUXDB_INIT_USERNAME: ${MCP_INFLUXDB_USERNAME}
-      DOCKER_INFLUXDB_INIT_PASSWORD: ${MCP_INFLUXDB_PASSWORD}
-      DOCKER_INFLUXDB_INIT_ORG: sighthound
-      DOCKER_INFLUXDB_INIT_BUCKET: mcp
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${MCP_INFLUXDB_TOKEN}
-    ports:
-    - "8086:8086"
-    networks:
-      - core_sighthound
-
   mcp:
     image: ${MCP_DOCKER_IMAGE}:${MCP_DOCKER_TAG}
     restart: unless-stopped
-    depends_on:
-      - influxdb
+    mem_limit: 1G
+    mem_reservation: 512M
     volumes:
       - ${MEDIA_PATH}:/data/sighthound/media:rw
+      - ${LOG_PATH}:/data/sighthound/logs/mcp:rw
+      - ${DB_PATH}:/data/sighthound/db:rw
       - ./conf/mcp.yml:/etc/mcpd/default.json:ro
     ports:
-      - "8089:8088"
+      - "9097:9097"
     env_file:
       - .env
     networks:
@@ -33,3 +21,7 @@ services:
 networks:
   core_sighthound:
     external: true
+
+volumes:
+  influxdb-persistent:
+  influxdb-persistent-2:
