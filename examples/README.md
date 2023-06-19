@@ -18,10 +18,10 @@ and more.
 
 [SIO Image Downloader](SIOImageDownloader): A utility that downloads MCP images based on mediaEvents from SIO.
 
-[SIO Image Drawer](SIOImageDownloader): A utility that downloads MCP images based on mediaEvents from SIO and it adds the objects to the images.
+[SIO Image Drawer](SIOImageDrawer): A utility that downloads MCP images based on mediaEvents from SIO and it adds the objects to the images.
 
 
-[SIO ImaVideoge Drawer](SIOImageDownloader): A utility that downloads MCP videos based on mediaEvents from SIO and it adds the objects to them.
+[SIO Video Drawer](SIOVideoDrawer): A utility that downloads MCP videos based on mediaEvents from SIO and it adds the objects to them.
 
 
 

@@ -6,15 +6,15 @@ services:
     image: ${SIO_DOCKER_IMAGE}:${SIO_DOCKER_TAG}${SH_ARCH}
     restart: always
     volumes:
-      - /data/sighthound/license/sighthound-license.json:/sighthound/sio/share/sighthound-license.json:ro
+      - ${LICENSE_PATH}/sighthound-license.json:/sighthound/sio/share/sighthound-license.json:ro
+      - ${LICENSE_PATH}/sighthound-license.json:/sighthound/sio/share/license.json:ro
       - ./conf/:/etc/sio/:ro
       - ./conf/plugins/:/lib/sio/plugins/:ro
-      - /data/sighthound/media:/data/sighthound/media:rw
-      - /data/sighthound/.cache:/root/.sio/modelCache
+      - ${MEDIA_PATH}:/data/sighthound/media:rw
+      - ${SH_BASE}/.cache:/root/.sio/modelCache
     env_file:
       - .env
-    command: > 
-      /sighthound/sio/bin/runPipelineSet ${SIO_ENTRYPOINT} --log ${SIO_LOG_LEVEL}
+    command: sh -c 'eval "/sighthound/sio/bin/${SIO_APP} ${SIO_ENTRYPOINT} --log ${SIO_LOG_LEVEL} ${SIO_EXTRA_ARGS}"'
     networks:
       core_sighthound:
         aliases:

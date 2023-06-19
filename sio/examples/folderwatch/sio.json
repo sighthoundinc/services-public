@@ -1,0 +1,22 @@
+{
+    "camera1" : {
+        "pipeline"      : "./share/pipelines/TrafficAnalytics/TrafficAnalyticsFolderWatch.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "folderPath" : "/data/sighthound/media/input/image/folderwatch",
+            "folderPollExtensions" : "['jpg','png']",
+            "sourceId" : "folderwatch",
+            "imageSaveDir":"/data/sighthound/media/output/image/folderwatch/",
+            "folderGenerateAnalyticsFile" : "true",
+            "folderRemoveSourceFiles" : "true",
+            "detectionModel" : "best",
+            "updateOnlyOnChange" : "false",
+            "amqpHost":"rabbitmq",
+            "amqpPort":"5672",
+            "amqpExchange":"anypipe",
+            "amqpUser":"guest",
+            "amqpPassword":"guest",
+            "amqpErrorOnFailure":"true"
+        }
+    }
+}

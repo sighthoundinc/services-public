@@ -9,7 +9,7 @@ services:
     mem_reservation: 512M
     volumes:
       - ${MEDIA_PATH}:/data/sighthound/media:rw
-      - ${LOG_PATH}:/data/sighthound/logs/mcp:rw
+      - ${LOGS_PATH}/mcp:/data/sighthound/logs/mcp:rw
       - ${DB_PATH}:/data/sighthound/db:rw
       - ./conf/mcp.yml:/etc/mcpd/default.json:ro
     ports:

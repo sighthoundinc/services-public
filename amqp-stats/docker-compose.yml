@@ -7,7 +7,7 @@ services:
     restart: unless-stopped
     volumes:
       - ${MEDIA_PATH}:/data/sighthound/media:rw
-      - ${LOG_PATH}:/data/sighthound/logs/mcp:rw
+      - ${LOGS_PATH}/amqp-stats:/data/sighthound/logs/mcp:rw
     env_file:
       - .env
     networks:
