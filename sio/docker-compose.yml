@@ -3,7 +3,7 @@ version: "2"
 services:  
   sio:
     container_name: ${SIO_CONTAINER_NAME}${SERVICE_GROUP}
-    image: ${SIO_DOCKER_IMAGE}:${SIO_DOCKER_TAG}${SIO_ARCH}
+    image: ${SIO_DOCKER_IMAGE}:${SIO_DOCKER_TAG}${SH_ARCH}
     restart: always
     volumes:
       - /data/sighthound/license/sighthound-license.json:/sighthound/sio/share/sighthound-license.json:ro

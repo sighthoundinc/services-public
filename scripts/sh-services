@@ -4,11 +4,21 @@ SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/..)"
 MEDIA_PATH="$(realpath "${SCRIPT_PATH}"/../../media)"
 DB_PATH="$(realpath "${SCRIPT_PATH}"/../../db)"
 
+if command -v docker-compose &> /dev/null
+then
+    # Use `docker-compose`
+    DOCKER_COMPOSE="docker-compose"
+else
+    # Use `docker compose`
+    DOCKER_COMPOSE="docker compose"
+fi
+
 check_endpoint() {
   curl --output /dev/null --silent --head $@ "$1"
 }
 
 # Merge the services
+# First file has the highest priority
 function merge_env_files(){
     output_file=$1
     shift 1
@@ -22,9 +32,46 @@ function merge_env_files(){
     echo ""
 }
 
+function remove_orphans(){
+    containers=$(docker ps -a -q)
+    for container in $containers; do
+        container_name=$(docker inspect -f '{{.Name}}' "${container}")
+        working_dir=$(docker inspect -f '{{(index .Config.Labels "com.docker.compose.project.working_dir")}}' "${container}")
+        if [[ "${working_dir}" == "${SERVICES_PATH}"* ]]; then
+            echo "Found container ${container_name} with working dir: '${working_dir}'"
+            # If the working dir does not exist anymore and starts with 'SERVICES_PATH', then remove the container
+            if [[ ! -d "${working_dir}" ]]; then
+                echo "Removing orphan container: ${container_name} ${container}"
+                docker rm -f "${container}"
+            fi
+        fi
+
+    done
+}
+
 function clean_media(){
     rm -rf "${MEDIA_PATH:?}/"*
     rm -rf "${DB_PATH:?}/"*
+}
+
+function save_arch_info(){
+    if [ ! -d "${SERVICES_PATH}"/conf ]; then
+        mkdir -p "${SERVICES_PATH}"/conf
+    fi
+
+    if [ "$(uname -m)" == "x86_64" ]; then
+        echo "SH_ARCH=-amd64" > "${SERVICES_PATH}"/conf/0010-arch.env
+    elif [ "$(uname -m)" == "aarch64" ]; then
+        L4TBASE_VERSION=32.7.3
+        if command -v bai-osinfo &> /dev/null
+        then
+            L4TBASE_VERSION=$(bai-osinfo -l)
+        fi
+        echo "SH_ARCH=-r${L4TBASE_VERSION}-arm64v8" > "${SERVICES_PATH}"/conf/0010-arch.env
+    else
+        echo "Unknown architecture: $(uname -m)"
+        exit 1
+    fi
 }
 
 function merge(){
@@ -35,6 +82,15 @@ function merge(){
     # Check for .env files
     mkdir -p "${service}"/conf
     for env_file in "${service}"/conf/*.env; do
+        if [ -f "${env_file}" ]; then
+            env_files_to_merge="${env_files_to_merge} ${env_file}"
+        fi
+    done
+
+    # Check for global .env files
+    mkdir -p "${SERVICES_PATH}"/conf
+    save_arch_info
+    for env_file in "${SERVICES_PATH}"/conf/*.env; do
         if [ -f "${env_file}" ]; then
             env_files_to_merge="${env_files_to_merge} ${env_file}"
         fi
@@ -75,6 +131,10 @@ function depends(){
         
         # Loop through the endpoints
         for endpoint in $endpoints; do
+            if [ -f "/proc/net/fib_trie" ] ; then
+                gateway_ip=$(awk '/32 host/ { print i } {i=$2}' /proc/net/fib_trie | head -n 1 | awk -F'.' '{$NF="1"}1' OFS='.')
+                endpoint=${endpoint/gateway_ip/$gateway_ip}
+            fi
             # Loop for 15 seconds or until the endpoint is up
             for ((i=0; i<15; i++)); do
                 if check_endpoint "$endpoint"; then
@@ -88,7 +148,22 @@ function depends(){
             done
             # Endpoint was not up after 45 seconds, so stop the execution
             echo "Error: endpoint '$endpoint' was not up after 45 seconds"
-            return 1
+            echo "Continuing execution."
+            return 0
+        done
+
+        files=$(grep "file" "${service}"/depends | awk '{print $2}')
+
+        # Loop through the files
+        for file in $files; do
+            if [ -f "$file" ]; then
+                # File is up, so print "service ready"
+                echo "File '$file' is available."
+                return 0
+            else
+                echo "File is not available: '$file'. Stopping execution"
+                return 1
+            fi
         done
     fi
     return 0
@@ -105,6 +180,7 @@ function up(){
     echo "Bringing up ${service_name}"
     merge "${service}"
     compose_up "${service}" &
+    sleep 1
 }
 
 function compose_up(){
@@ -113,24 +189,45 @@ function compose_up(){
         echo "Skipping ${service} : depends failed"
         return
     fi
-    cd "${service}" || exit
+    cd "${service}" || exit 1
     echo "Starting ${service}"
-    docker-compose up -d
-    cd "${SERVICES_PATH}" || exit
+    ${DOCKER_COMPOSE} up -d
+    cd "${SERVICES_PATH}" || exit 1
 }
 
 function down(){
     service=$1
     echo "Stopping ${service}"
-    cd "${service}" || exit
-    docker-compose down
-    cd "${SERVICES_PATH}" || exit
+    cd "${service}" || exit 1
+    ${DOCKER_COMPOSE} down
+    cd "${SERVICES_PATH}" || exit 1
 }
 
 function restart(){
     service=$1
     down "${service}"
     up "${service}"
+}
+
+function enable(){
+    service=$1
+    if [ -f "${service}/disabled" ]; then
+        echo "Enabling ${service}."
+        rm  "${service}/disabled"
+    else
+        echo "Service ${service} was already enabled."
+    fi
+}
+
+function disable(){
+    service=$1
+    if [ -f "${service}/disabled" ]; then
+        echo "Skipping ${service} : disabled file found."
+        return
+    else
+        echo "Disabling ${service}"
+        touch "${service}/disabled"
+    fi
 }
 
 function element_in_list(){
@@ -186,7 +283,6 @@ function apply_to_services(){
             service_full_path="${SERVICES_PATH}/${service}"
             $COMMAND "${service_full_path}"
             echo "####################DONE#######################"
-            sleep 1
         else
             echo "Unknown service: ${service}"
             echo "Available services: ${AVAILABLE_SERVICES}"
@@ -196,14 +292,14 @@ function apply_to_services(){
     wait
 }
 
-LIST_OF_COMMANDS="merge up down restart edit clean_media"
+LIST_OF_COMMANDS="merge up down restart edit enable disable clean_media remove_orphans"
 COMMAND=$1
 shift 1
 case $COMMAND in
-    "merge"|"up"|"down"|"restart"|"edit")
+    "merge"|"up"|"down"|"restart"|"edit"|"enable"|"disable")
         apply_to_services "$COMMAND" $@
         ;;
-    "clean_media")
+    "clean_media"|"remove_orphans")
         "$COMMAND"
         ;;
     "")
