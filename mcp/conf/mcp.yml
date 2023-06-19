@@ -16,7 +16,6 @@ media:
   path: /data/sighthound/media
 cleaner:
   enable: true
-  auditLogFile: /data/sighthound/logs/mcp/cleaner
   maxDiskUtilization: 90
   maxMediaSize: 500 MB
 logs:

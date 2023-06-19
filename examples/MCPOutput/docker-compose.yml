@@ -1,0 +1,24 @@
+version: '3.7'
+services:
+  example-sio-rtsp:
+    build: .
+    container_name: example-mcp-output
+    restart: always
+    ports:
+      - "8554:8554"
+    environment:
+      - MCP_HOST=mcp
+      - MCP_PORT=9097
+      - MCP_USERNAME=root
+      - MCP_PASSWORD=root
+    volumes:
+      - ./src:/usr/src/app
+      - ../lib:/usr/src/app/lib
+    networks:
+      core_sighthound:
+        aliases:
+          - example-mcp-output
+
+networks:
+  core_sighthound:
+    external: true

@@ -1,0 +1,2 @@
+endpoint http://gateway_ip:15672/api/nodes
+enabled_service_up rabbitmq

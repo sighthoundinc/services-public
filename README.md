@@ -4,12 +4,61 @@
 
 This repo contains a set of docker-compose services that are meant to be handled using the `./scripts/sh-services` script. It is a simple tool that calls `docker-compose up/down` but the main logic resides in the configuration management. The CLI tool reads the `conf` folder of every service and performs a merge (using alphanumeric priority) into the `.env` file that docker-compose uses.
 
+
 ### Node devices
 
-If you are on a device that doesn't have `sh-device-ui` installed, run the following commands:
+If you are on a device that doesn't have `sh-device-ui` installed, you need to manually:
+
+- Install Sighthound Services
+- Install license and key files
+- Login to the Docker registry
+
+#### Installing Sighthound Services
 
 ```bash
-docker login -u _json_key -p  "`cat /data/keys/sighthound-keyfile.json`" us-central1-docker.pkg.dev
+mkdir -p /data/sighthound
+````
+
+Either clone the repo or uncompress latest release.
+
+Option 1: Clone the repo:
+
+```bash
+# 
+git clone git@github.com:sighthoundinc/services.git
+cd services
+# Optionally: checkout the latest release
+RELEASE="v1.3.0"
+git checkout tags/${RELEASE}
+```
+
+Option 2: Uncompress latest release:
+
+```bash
+RELEASE="v1.3.0"
+mkdir /data/sighthound/services
+cd /data/sighthound/services
+wget https://github.com/sighthoundinc/services/releases/download/${RELEASE}/sh-services-${RELEASE}.tar.gz
+tar -xvf sh-services-${RELEASE}.tar.gz
+rm sh-services-${RELEASE}.tar.gz
+```
+
+#### Installing SIO analytics license and Docker registry key
+
+Copy (cp) or remote secure copy (scp) the Sighthound provided files to the right location:
+```
+# License
+mkdir -p /data/sighthound/license
+cp ~/Downloads/sighthound-license.json /data/sighthound/license
+# Docker key
+mkdir -p /data/sighthound/keys
+cp ~/Downloads/sighthound-keyfile.json /data/sighthound/keys
+```
+
+#### Logging in to the docker registry
+
+```bash
+docker login -u _json_key -p  "`cat /data/sighthound/keys/sighthound-keyfile.json`" us-central1-docker.pkg.dev
 ```
 
 ### Enabling a test RTSP
@@ -25,16 +74,15 @@ Then copy the test video file to the live555 mount path:
 ```bash
 mkdir -p ./live555/test-data
 # cp or scp
-cp <my-video>  ./live555/test-data/myvideo.mp4
+cp <my-video>  ./live555/test-data/my-video.mp4
 ```
 
 And finally, point SIO to live555:
 
 ```bash
 cp ./sio/examples/live555/* ./sio/conf
-echo "SIO_ENTRYPOINT=/etc/sio/sio.live555.json" >> ./sio/conf/0001-edit.conf
 # Check the configuration file, verify paramets and save
-./scripts/sh-services edit live555
+./scripts/sh-services edit sio
 ```
 
 ### All devices
@@ -50,6 +98,19 @@ and to edit the configuration of services, run:
 ```bash
 ./scripts/sh-services edit all
 ```
+
+### Test
+
+#### Visual test
+
+You can use SIOOutput example to test that SIO Analytics is working, just run:
+
+```bash
+cd ./examples/SIO_RTSP_Output
+docker compose up
+```
+
+And open VLC at `rtsp://localhost:8554/live`.
 
 ## Available services
 

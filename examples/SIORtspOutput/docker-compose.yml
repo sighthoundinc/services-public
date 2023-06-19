@@ -1,0 +1,30 @@
+version: '3.7'
+services:
+  example-sio-rtsp:
+    build: .
+    container_name: example-sio-rtsp
+    restart: always
+    ports:
+      - "8554:8554"
+    environment:
+      - PORT=8554
+      - STREAM_URI=/live
+      - FPS=10
+      - AMQP_HOST=rabbitmq
+      - AMQP_PORT=5672
+      - MCP_HOST=mcp
+      - MCP_PORT=9097
+      - MCP_USERNAME=root
+      - MCP_PASSWORD=root
+      - GST_DEBUG=3
+    volumes:
+      - ./src:/usr/src/app
+      - ../lib:/usr/src/app/lib
+    networks:
+      core_sighthound:
+        aliases:
+          - example-sio-rtsp
+
+networks:
+  core_sighthound:
+    external: true
