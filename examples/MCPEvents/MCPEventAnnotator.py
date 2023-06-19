@@ -4,10 +4,10 @@ import os
 import cv2
 import json
 from EventSegment import EventSegment
-from MCPEvents import MCPEvents
 from ROIFilter import ROIFilter
 import argparse
 import numpy as np
+import m3u8
 
 class MCPEventAnnotator:
     DEFAULT_CAPTURE_DIR="video_captures"
@@ -37,11 +37,11 @@ class MCPEventAnnotator:
         self.postprocess_sensors = postprocess_sensors
 
     def get_sensor_name(self, sensor_id):
+        region_name = "unknown"
         if self.roi_filter:
             region = self.roi_filter.get_roi_region(sensor_id)
-        region_name = "unknown"
-        if region is not None:
-            region_name = region.name
+            if region is not None:
+                region_name = region.name
         return region_name
 
     def init_sensor_id(self, sensor_id, text = "unknown"):
@@ -99,7 +99,7 @@ class MCPEventAnnotator:
         text_offset = 150
         for sensor_id in self.sensor_annotations:
             annotated = True
-            cv2.putText(frame, self.sensor_annotations[sensor_id]['text'], (40,text_offset), cv2.FONT_HERSHEY_SIMPLEX,
+            cv2.putText(frame, self.sensor_annotations[sensor_id].get('text',''), (40,text_offset), cv2.FONT_HERSHEY_SIMPLEX,
                 1.15 , self.sensor_annotations[sensor_id]['text_color'], 2, cv2.LINE_AA, False)
             text_offset += 40
         return annotated
@@ -201,71 +201,104 @@ class MCPEventAnnotator:
             else:
                 fps = last_frame / (last_time/1000)
             print(f"Found bogus FPS {reported_fps} in video, calculated overall fps {fps}")
-
+        vid_capture.release()
         return fps
 
-    def create_annotation(self, jsonfile, vidfile, annotated_vid):
+    def get_vidfiles(self, vidfile, event_segment):
+        vidfiles = [vidfile]
+        start_timestamps = [event_segment['start_ts']]
+        if vidfile.suffix == ".m3u8":
+            vidfiles = []
+            start_timestamps = []
+            playlist = m3u8.load(str(vidfile))
+            for segment in playlist.segments:
+                file = segment.uri
+                if Path(file).is_absolute():
+                    vidfiles.append(Path(file))
+                else:
+                    vidfiles.append(vidfile.parent / Path(file))
+                has_timestamp = False
+                for video in event_segment['videos']:
+                    if video['msg'] in segment.uri:
+                        start_timestamps.append(video['startTs'])
+                        has_timestamp = True
+                        break
+                if not has_timestamp:
+                    start_timestamps.append(None)
+
+        return vidfiles, start_timestamps
+
+    def create_annotation(self, jsonfile, vidfile):
+        annotated_subdir = Path(vidfile).parent / Path(self.annotated_subdir)
+        annotated_subdir.mkdir(parents=True, exist_ok=True)
+        annotated_vid = Path(annotated_subdir)/Path(jsonfile).stem
+        print(f"Creating video at {annotated_vid} for video at {vidfile} with json content at {jsonfile}")
         event_segment = json.load(open(jsonfile))
         frame_count = 0
         event_list_index = 0
         annotated_frame_count = 0
-        overall_fps = self.get_overall_fps(vidfile)
-        vid_capture = cv2.VideoCapture(str(vidfile))
+        vidfiles, start_timestamps = self.get_vidfiles(vidfile, event_segment)
+        overall_fps = self.get_overall_fps(vidfiles[0])
+        vid_capture = cv2.VideoCapture(str(vidfiles[0]))
         frame_size = (int(vid_capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
                         int(vid_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-        output = cv2.VideoWriter(str(annotated_vid),
+        output = cv2.VideoWriter(str(annotated_vid) + ".mp4",
                                 cv2.VideoWriter_fourcc('m','p','4','v'),
                                 overall_fps,
                                 frame_size)
-        ret, frame = vid_capture.read()
-        while(vid_capture.isOpened()):
-        # vid_capture.read() methods returns a tuple, first element is a bool
-        # and the second is frame
-            video_ts_ms = vid_capture.get(cv2.CAP_PROP_POS_MSEC)
-            next_ret, next_frame = vid_capture.read()
-            video_ts_next = vid_capture.get(cv2.CAP_PROP_POS_MSEC)
-            frame_count = frame_count + 1
-            frame_ts = event_segment['start_ts'] + video_ts_ms
-            frame_ts_next = event_segment['start_ts'] + video_ts_next
-            annotated_frame = False
-            anypipe_frame_ts = 0
-            if ret == True:
-                self.frame_info = {}
-                if event_list_index < len(event_segment['events_list']):
-                    next_event = event_segment['events_list'][event_list_index]
-                    while frame_ts <= next_event['frameTimestamp'] <= frame_ts_next:
-                        if self.annotate_frame_with_event(frame, next_event):
-                            print(f"Wrote frame {frame_count} and annotated with event at timestamp {next_event['frameTimestamp']}")
-                            annotated_frame_count = annotated_frame_count +1
-                            annotated_frame = True
-                            anypipe_frame_ts = next_event['frameTimestamp']
-                        event_list_index = event_list_index + 1
-                        if event_list_index < len(event_segment['events_list']):
-                            next_event = event_segment['events_list'][event_list_index]
-                        else:
-                            break
 
-                if self.annotate_sensor_events(frame):
-                    annotated_frame = True
-                self.annotate_frame_with_sensors(frame)
-                if self.timestamp_display:
-                    self.annotate_frame_with_timestamp(frame, anypipe_frame_ts, frame_ts)
-                # Write the frame to the output files
-                output.write(frame)
-                if not annotated_frame:
-                    print(f"Wrote frame {frame_count} without event annotation")
-                frame = next_frame
-                ret = next_ret
-            else:
-                print("Stream ended")
-                break
+        for vidfile, start_ts in zip(vidfiles, start_timestamps):
+            if start_ts is None:
+                print(f"Skipping video {vidfile} since no start timestamp was captured for this file")
+                continue
+            vid_capture.release()
+            vid_capture = cv2.VideoCapture(str(vidfile))
+            ret, frame = vid_capture.read()
+            stream_ended = False
+            while(vid_capture.isOpened() and not stream_ended):
+                video_ts_ms = vid_capture.get(cv2.CAP_PROP_POS_MSEC)
+                # vid_capture.read() methods returns a tuple, first element is a bool
+                # and the second is frame
+                next_ret, next_frame = vid_capture.read()
+                video_ts_next = vid_capture.get(cv2.CAP_PROP_POS_MSEC)
+                frame_count = frame_count + 1
+                frame_ts = start_ts + video_ts_ms
+                frame_ts_next = start_ts + video_ts_next
+                annotated_frame = False
+                anypipe_frame_ts = 0
+                if ret == True:
+                    self.frame_info = {}
+                    if event_list_index < len(event_segment['events_list']):
+                        next_event = event_segment['events_list'][event_list_index]
+                        while frame_ts <= next_event['frameTimestamp'] <= frame_ts_next:
+                            if self.annotate_frame_with_event(frame, next_event):
+                                annotated_frame_count = annotated_frame_count +1
+                                annotated_frame = True
+                                anypipe_frame_ts = next_event['frameTimestamp']
+                            event_list_index = event_list_index + 1
+                            if event_list_index < len(event_segment['events_list']):
+                                next_event = event_segment['events_list'][event_list_index]
+                            else:
+                                break
 
-        print(f"Processed {len(event_segment['events_list'])} events, annotated {annotated_frame_count} frames")
-        vid_capture.release()
+                    if self.annotate_sensor_events(frame):
+                        annotated_frame = True
+                    self.annotate_frame_with_sensors(frame)
+                    if self.timestamp_display:
+                        self.annotate_frame_with_timestamp(frame, anypipe_frame_ts, frame_ts)
+                    # Write the frame to the output files
+                    output.write(frame)
+                    frame = next_frame
+                    ret = next_ret
+                else:
+                    print("Stream ended")
+                    stream_ended = True
+            print(f"Video at {annotated_vid} complete, processed {len(event_segment['events_list'])} events, annotated {annotated_frame_count} frames")
         output.release()
 
     def main(self):
-        files = Path(self.capture_dir).glob('*.json')
+        files = list(Path(self.capture_dir).glob('*.json'))
+        files.extend(list(Path(Path(self.capture_dir) / Path('json')).glob('*.json')))
         annotated_subdir = Path(self.capture_dir) / Path(self.annotated_subdir)
         annotated_subdir.mkdir(parents=True, exist_ok=True)
         has_json_file = False
@@ -275,14 +308,11 @@ class MCPEventAnnotator:
             vidfile = Path(self.capture_dir) / jsonfile.stem
             if not os.path.isfile(vidfile):
                 vidfile = None
-                vidfiles = Path(self.capture_dir).glob('*.mkv')
-                for vidfile in vidfiles:
-                    print(f"{vidfile}")
+                capture_dir_matches = list(Path(self.capture_dir).glob(f"{jsonfile.stem}.*"))
+                if len(capture_dir_matches) == 1:
+                    vidfile = capture_dir_matches[0]
             if vidfile:
-                annotated_vid = annotated_subdir/jsonfile.stem
-                if len(annotated_vid.suffix) == 0:
-                    annotated_vid = annotated_vid.parent / (annotated_vid.name + vidfile.suffix)
-                self.create_annotation(jsonfile, vidfile, annotated_vid)
+                self.create_annotation(jsonfile, vidfile)
             else:
                 print(f"Could not find video to match {jsonfile}, no annotation performed")
         if not has_json_file:
@@ -292,7 +322,7 @@ class MCPEventAnnotator:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEvents.DEFAULT_CAPTURE_DIR + ")", default=MCPEvents.DEFAULT_CAPTURE_DIR)
+    parser.add_argument("--capture_dir", help="Directory to store captured video (default is " + MCPEventAnnotator.DEFAULT_CAPTURE_DIR + ")", default=MCPEventAnnotator.DEFAULT_CAPTURE_DIR)
     parser.add_argument("--sensors_json", help="sensors.json to use for RIO display")
     parser.add_argument("--timestamps", help="Whether to display timestamps on the video (default is " + str(MCPEventAnnotator.DEFAULT_DISPLAY_TIMESTAMPS) + ")", default=MCPEventAnnotator.DEFAULT_DISPLAY_TIMESTAMPS)
     parser.add_argument("--postprocess_sensors", help="Whether to post process sensors or only use sensor data in event (default is " + str(MCPEventAnnotator.DEFAULT_POSTPROCESS_SENSORS) + ")", default=MCPEventAnnotator.DEFAULT_POSTPROCESS_SENSORS)

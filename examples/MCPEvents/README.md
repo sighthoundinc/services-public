@@ -39,21 +39,20 @@ The command
 python3 MCPEvents.py 10.1.10.154
 ```
 
-Will capture events using the instance at 10.1.10.154 and write videos associated with events as
-well as a json file containing all events captured during the video duration to a
-`video_captures` subdirectory.  This implementation captures events based on
-all events recieved from SIO.  Events are captured when more than group_events_separation_ms occurs
-between events OR when up to group_events_max_length of time expires without a separation gap.
-These two values are currently set to 5 seconds and 60 seconds respectively and can be tuned for the application in
-MCPEvents.py
+Will capture events using the instance at 10.1.10.154 and write videos associated with events to
+a `video_captures` subdirectory and a json file containing all events captured during the video
+to a `video_captures\json` subdirectory.  The video capture format will use .m3u8
+which unfortunately [can't be played using VLC](https://superuser.com/questions/1379361/vlc-and-m3u8-file)
+but can be played with MPlayer or recent Windows 10 or later version of Windows Media Player.
+
 #### Using Event Generator Output
 
 The command
 ```
 python3 MCPEvents.py --use_events 10.1.10.154
 ```
-Captures events using the Event Analytics module configured on the device with `sensorsConfigFile` pointing
-to a sensor configuration defining events to capture.
+Captures events using the Event Analytics module configured on the device with `sensorsConfigFile` SIO
+setting referencing a sensor configuration defining events to capture.
 
 #### Filtering based on ROI
 
@@ -76,7 +75,7 @@ The command:
 python3 MCPEventAnnotator.py
 ```
 
-Will annotate the videos captured in the previous `MCPEvents` capture step, based on the event logs associated with captured videos
+Will annotate the videos captured in the previous `MCPEvents` capture step, based on the event logs associated with captured videos and the resulting video files.
 
 The command:
 ```
@@ -97,6 +96,17 @@ Will include an overlay of the sensors in sensors.json on the annotated videos w
 annotating.  Use the `--postprocess_sensors` option when the original MCPEvents capture did not
 come from an SIO pipeline with the Event Analytics module enabled (you did not have `sensorsConfigFile` setup
 on the pipeline when MCPEvents captured the output data and did not capture events using the --use_events option.)
+
+### Combined event capture and annotation
+
+The command
+```
+python3 MCPEvents.py --use_events --annotate --sensors_json sensors.json 10.1.10.154
+```
+will both capture events from 10.1.10.154 and annotate those events using the `sensors.json`
+file to draw detailed sensor event information.  The `annotated` subdirectory will contain
+annotated videos with names matching the non-annotated .m3u file generated in the base
+capture directory.
 
 ## Docker Support
 
@@ -128,6 +138,3 @@ containers, and `docker stop <container_name>` to stop a container.
 
 1) The tool only supports region of interest sensors.  Line sensors are not supported.
 2) Most tuning parameters are hard coded and not accepted as arguments.
-3) MCP authentication parameters are hardcoded in MCPFetcher.py and are assumed to be defaults.
-4) Events aren't perfectly synchronized in the event annotator, and differences between
-video and annotations of ~1 second are currently likely to occur.

@@ -1,5 +1,9 @@
 # SIO service Manual
 
+## Limitations
+
+- NVMPI support is broken with nvidia-generated streams, and disabled for those. It is tested functional with most other H264 source we've tried, but if you experience problems, add `SIO_ENABLE_NVMPI=0` to your environment file.
+
 ## Instructions
 
 Choose one of the following operation modes

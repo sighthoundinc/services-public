@@ -1,0 +1,19 @@
+{
+    "unifiedEU-US" : {
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsFolderWatch.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "boxFilterConfig" : "/config/analytics/boxFilter.json",
+            "folderPath" : "/data/media",
+            "folderRemoveSourceFiles" : "true",
+            "folderPollAgeMin" : "0",
+            "folderPollInterval" : "100",
+            "folderPollExtensions" : "[ 'jpeg', 'webp', 'bmp', 'jpg', 'png' ]",
+            "detectionModel" : "gen6es",
+            "lptFilter" : "['eu', 'us']",
+            "lptMinConfidence" : "0.5",
+            "sourceId" : "rest-api-1",
+            "lptPreferAccuracyToSpeed" : "true"
+        }
+    }
+}
