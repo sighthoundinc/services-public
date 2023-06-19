@@ -2,6 +2,7 @@ version: "3.4"
 
 services:
   rabbitmq:
+    container_name: ${RABBITMQ_CONTAINER_NAME}${SERVICE_GROUP}
     image: ${AMQP_DOCKER_IMAGE}:${AMQP_DOCKER_TAG}
     restart: unless-stopped
     volumes:
@@ -17,7 +18,9 @@ services:
       timeout: 30s
       retries: 3
     networks:
-      - core_sighthound
+      core_sighthound:
+        aliases:
+          - ${RABBITMQ_CONTAINER_NAME}${SERVICE_GROUP}
 
 networks:
   core_sighthound:

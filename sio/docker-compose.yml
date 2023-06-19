@@ -2,6 +2,7 @@ version: "2"
 
 services:  
   sio:
+    container_name: ${SIO_CONTAINER_NAME}${SERVICE_GROUP}
     image: ${SIO_DOCKER_IMAGE}:${SIO_DOCKER_TAG}${SIO_ARCH}
     restart: always
     volumes:
@@ -15,8 +16,12 @@ services:
     command: > 
       /sighthound/sio/bin/runPipelineSet ${SIO_ENTRYPOINT} --log ${SIO_LOG_LEVEL}
     networks:
-      - core_sighthound
-      - sh-device-ui_sh-ui-net
+      core_sighthound:
+        aliases:
+          - ${SIO_CONTAINER_NAME}${SERVICE_GROUP}
+      sh-device-ui_sh-ui-net:
+        aliases:
+          - ${SIO_CONTAINER_NAME}${SERVICE_GROUP}
 
 networks:
   core_sighthound:

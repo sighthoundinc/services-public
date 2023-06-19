@@ -4,15 +4,20 @@ SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/..)"
 MEDIA_PATH="$(realpath "${SCRIPT_PATH}"/../../media)"
 DB_PATH="$(realpath "${SCRIPT_PATH}"/../../db)"
 
+check_endpoint() {
+  curl --output /dev/null --silent --head $@ "$1"
+}
+
 # Merge the services
 function merge_env_files(){
     output_file=$1
     shift 1
     env_files=$*
-    echo "Merging ${env_files} into ${output_file}"
+    echo "Merging ${env_files} into '${output_file}'"
     sort -u -t '=' -k 1,1 "$@" > "$1"
     sed -i -e '/^[ \t]*#/d' "$1"
-    echo "Resulting file:"
+    echo ""
+    echo "Resulting '${output_file}' file:"
     cat "$1"
     echo ""
 }
@@ -28,6 +33,7 @@ function merge(){
     env_files_to_merge="${service}/.env"
 
     # Check for .env files
+    mkdir -p "${service}"/conf
     for env_file in "${service}"/conf/*.env; do
         if [ -f "${env_file}" ]; then
             env_files_to_merge="${env_files_to_merge} ${env_file}"
@@ -52,11 +58,63 @@ function edit(){
     merge "${service}"    
 }
 
+function create_network(){
+    network_name=$1
+    if [ "$(docker network ls | grep ${network_name})" == "" ]; then
+        echo "Creating network ${network_name}"
+        docker network create "${network_name}"
+    fi
+}
+
+function depends(){
+    service=$1
+    # Check if the folder contains the "depends" file
+    if [ -f "${service}/depends" ]; then
+        # Read the contents of the "depends" file
+        endpoints=$(grep "endpoint" "${service}"/depends | awk '{print $2}')
+        
+        # Loop through the endpoints
+        for endpoint in $endpoints; do
+            # Loop for 15 seconds or until the endpoint is up
+            for ((i=0; i<15; i++)); do
+                if check_endpoint "$endpoint"; then
+                    # Endpoint is up, so print "service ready"
+                    echo "Endpoint '$endpoint' is ready"
+                    return 0
+                else
+                    echo "Waiting for endpoint: '$endpoint' to be up..."
+                    sleep 3
+                fi
+            done
+            # Endpoint was not up after 45 seconds, so stop the execution
+            echo "Error: endpoint '$endpoint' was not up after 45 seconds"
+            return 1
+        done
+    fi
+    return 0
+}
+
 function up(){
     service=$1
+    # Check if disabled file exists
+    if [ -f "${service}/disabled" ]; then
+        echo "Skipping ${service} : disabled file found"
+        return
+    fi
+    service_name=$(basename "${service}")
+    echo "Bringing up ${service_name}"
     merge "${service}"
-    echo "Starting ${service}"
+    compose_up "${service}" &
+}
+
+function compose_up(){
+    service=$1
+    if ! depends "${service}"; then
+        echo "Skipping ${service} : depends failed"
+        return
+    fi
     cd "${service}" || exit
+    echo "Starting ${service}"
     docker-compose up -d
     cd "${SERVICES_PATH}" || exit
 }
@@ -75,26 +133,67 @@ function restart(){
     up "${service}"
 }
 
+function element_in_list(){
+    element=$1
+    shift
+    list=( $@ )
+    echo "Checking if ${element} is in ${list[*]}"
+    for e in "${list[@]}"; do
+        echo "Checking $e"
+        if [ "$e" == "$element" ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 function apply_to_services(){
     COMMAND=$1
     shift 1
-    SERVICE_FILTER=$1
-    shift 1
+    SERVICES=( "$@" )
+    AVAILABLE_SERVICES_RAW=$(ls "${SERVICES_PATH}"/*/docker-compose.yml | sed -e 's/\/docker-compose.yml//g' -e 's/.*\///g' )
+    AVAILABLE_SERVICES=$(echo "${AVAILABLE_SERVICES_RAW}"  | tr '\n' ' ' )
+    AVAILABLE_SERVICES="${AVAILABLE_SERVICES} all"
+    # Check if services is empty
+    if [ "${#SERVICES[@]}" -eq 0 ]; then
+        echo "No services specified"
+        echo "Usage: $0 $COMMAND <service1> <service2> ..."
+        echo "Available services: ${AVAILABLE_SERVICES}"
+        exit 1
+    fi
+    # Create networks
+    create_network "sh-device-ui_sh-ui-net"
+    create_network "core_sighthound"
+
+    # Check all services
+    if element_in_list "all" "${SERVICES[@]}"; then
+        echo "Applying command '${COMMAND}' to all services"
+        SERVICES=(${AVAILABLE_SERVICES_RAW})
+    fi
     # Iterate services
-    for service in "${SERVICES_PATH}"/*; do
-        if [ -d "${service}" ]; then
-        # Check for Docker compose file
-            if [ -f "${service}/docker-compose.yml" ]; then
-                # Check parameters
-                if [ "$SERVICE_FILTER" == "" ] || [[ "${service}" =~ $SERVICE_FILTER ]]; then
-                    echo "Applying ${COMMAND} to ${service}"
-                    $COMMAND "${service}" $@
-                fi
-            else
-                echo "Skipping ${service} : No docker-compose.yml file found"
+    echo "Applying command '${COMMAND}' to services: ${SERVICES[*]}"
+    for service in "${SERVICES[@]}"; do
+        # Check if service in AVAILABLE_SERVICES
+        if element_in_list "${service}" "${AVAILABLE_SERVICES[@]}" ; then
+            if [ "${service}" == " " ] ; then
+                continue
             fi
+            echo ""
+            echo "###############################################"
+            echo "### ${service}"
+            echo "###############################################" 
+            echo "Applying command '${COMMAND}' to ${service}"
+            service_full_path="${SERVICES_PATH}/${service}"
+            $COMMAND "${service_full_path}"
+            echo "####################DONE#######################"
+            sleep 1
+        else
+            echo "Unknown service: ${service}"
+            echo "Available services: ${AVAILABLE_SERVICES}"
         fi
     done
+    echo "Exiting..."
+    wait
 }
 
 LIST_OF_COMMANDS="merge up down restart edit clean_media"

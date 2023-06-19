@@ -2,6 +2,7 @@ version: "2"
 
 services:
   amqp:
+    container_name: ${AMQP_STATS_CONTAINER_NAME}${SERVICE_GROUP}
     image: ${AMQP_STATS_DOCKER_IMAGE}:${AMQP_STATS_DOCKER_TAG}
     restart: unless-stopped
     volumes:
@@ -10,7 +11,9 @@ services:
     env_file:
       - .env
     networks:
-      - core_sighthound
+      core_sighthound:
+        aliases:
+          - ${AMQP_STATS_CONTAINER_NAME}${SERVICE_GROUP}
 
 networks:
   core_sighthound:

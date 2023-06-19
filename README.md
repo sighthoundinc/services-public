@@ -3,6 +3,19 @@
 
 ## Quick start
 
+This repo contains a set of docker-compose services that are meant to be handled using the `./scripts/sh-services` script. It is a simple tool that calls `docker-compose up/down` but the main logic resides in the configuration management. The CLI tool reads the `conf` folder of every service and performs a merge (using alphanumeric priority) into the `.env` file that docker-compose uses.
+
+To start, just run:
+
+```
+./scripts/sh-services up all
+```
+
+and to edit the configuration of services, run:
+```
+./scripts/sh-services edit all
+```
+
 ### Available services
 
 #### mcp (Media Control Point)
@@ -37,7 +50,7 @@ First create the data dirs
 5. Install SIO license in `/data/sighthound/license/sighthound-license.json`
 6. Uncompress services tarball into `/data/sighthound/services`
 7. Modify the `sio.json` file corresponding your sio selected configuration. (Setting the right URL, pipeline parameters...)
-8. Finally, create the docker .env files by running: `./scripts/sh-services merge`
+8. Finally, create the docker .env files by running: `./scripts/sh-services merge all`
 
 #### SIO pipeline parameters
 
@@ -71,7 +84,7 @@ echo "SIO_DOCKER_TAG=r221202" >  sio/conf/0009-debug.env
 and then update the services:
 
 ```
-bash ./scripts/sh-services merge
+bash ./scripts/sh-services merge all
 ```
 
 ### Deployment
@@ -79,7 +92,7 @@ bash ./scripts/sh-services merge
 
 ```
 docker network create sh-device-ui_sh-ui-net || true
-bash ./scripts/sh-services up
+bash ./scripts/sh-services up all
 ```
 
 
@@ -99,4 +112,20 @@ For using `sh-services` you may want to run: `export PATH=${PATH}:/data/sighthou
 Then you can do commands like:
 ```
 $ sh-services up
+```
+
+#### Disabling a service
+
+To disable a service just run:
+
+```
+$ touch <service>/disabled
+```
+
+#### Re-enabling a service
+
+To enalbe a service just run:
+
+```
+$ rm <service>/disabled
 ```
