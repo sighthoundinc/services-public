@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 SCRIPT_PATH="$(
     cd -- "$(dirname "$0")" >/dev/null 2>&1
     pwd -P
@@ -33,18 +34,37 @@ else
     exit 1
 fi
 
+test_rtsp_stream() {
+    local rtsp_url="$1"
+    local timeout_seconds="$2"
+    if ! command -v ffprobe &> /dev/null; then
+        echo "FFmpeg is not installed. Please install FFmpeg first."
+        return 1
+    fi
+    local status_code=$(ffprobe -v quiet -select_streams v:0 -show_entries stream=codec_name -of default=nokey=1:noprint_wrappers=1 -rtsp_transport tcp "$rtsp_url" -timeout "$timeout_seconds" 2>/dev/null)
+
+    if [[ -n $status_code ]]; then
+        echo "RTSP stream $rtsp_url is up"
+        return 0
+    else
+        echo "ERROR: RTSP stream $rtsp_url is down"
+        return 1
+    fi
+}
+
 check_endpoint() {
     curl --connect-timeout 2 --output /dev/null --silent --head $@ "$1"
 }
 
 check_service_up() {
     local service=$1
+    local service_full_path="${SERVICES_PATH}/${service}"
     local container_ids
     local container_id
     local state
     
     # Get container IDs
-    container_ids=$(${DOCKER_COMPOSE} -f "${service}/docker-compose.yml" ps -a -q)
+    container_ids=$(${DOCKER_COMPOSE} -f "${service_full_path}/docker-compose.yml" ps -a -q)
     
     # Check if there are no containers
     if [ -z "$container_ids" ]; then
@@ -81,10 +101,13 @@ function merge_env_files() {
     echo "Merging ${env_files} into '${output_file}'"
 
     # Sort the input files and remove duplicates, then write the result to the output file
+    set -e
     sort -u -t '=' -k 1,1 "$@" >"$1"
+    set +e
 
     # Remove comments from the output file
     sed -i.bkp -e '/^[ \t]*#/d' "$1"
+    rm "$1.bkp"
 
     echo ""
     echo "Resulting '${output_file}' file:"
@@ -111,6 +134,7 @@ function remove_orphans() {
 
 function clean_logs() {
     find "${LOGS_PATH:?}" -type f -exec truncate -s 0 {} \;
+    echo "Removed all log files"
 }
 
 function clean_media() {
@@ -197,18 +221,19 @@ EOF
 
 function merge() {
     local service=$1
-    touch "${service}/.env"
-    env_files_to_merge="${service}/.env"
+    local service_full_path="${SERVICES_PATH}/${service}"
+    touch "${service_full_path}/.env"
+    env_files_to_merge="${service_full_path}/.env"
 
     # Check for .env files
-    mkdir -p "${service}"/conf
-    for env_file in "${service}"/conf/*.env; do
+    mkdir -p "${service_full_path}"/conf
+    for env_file in "${service_full_path}"/conf/*.env; do
         if [ -f "${env_file}" ]; then
             env_files_to_merge="${env_files_to_merge} ${env_file}"
         fi
     done
 
-    # Check for global .env files
+    # Check for global .env filesmerge_env_files
     mkdir -p "${SERVICES_PATH}"/conf
     save_arch_info
     save_defaults_info
@@ -218,7 +243,7 @@ function merge() {
         fi
     done
 
-    merge_env_files "${service}"/.env ${env_files_to_merge}
+    merge_env_files "${service_full_path}"/.env ${env_files_to_merge}
 
 }
 
@@ -247,6 +272,7 @@ function set_text_editor() {
 function remove_comments_and_duplicates() {
     local file=$1
     sed -i.bkp -e '/^[ \t]*#/d' "${file}"
+    rm "${file}.bkp"
     # This awk command reads the contents of the file specified by the variable 'file' and stores each line in an array 'a'.
     # It then prints the contents of the array in reverse order, removing any duplicate lines based on the first field (before the '=' character) using the 'seen' array.
     awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }' "${file}" | awk -F= '!seen[$1]++' | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }' > "${file}.tmp" 
@@ -254,35 +280,47 @@ function remove_comments_and_duplicates() {
 }
 function show() {
     local service=$1
+    local service_full_path="${SERVICES_PATH}/${service}"
     merge "${service}" >>/dev/null
     echo "Showing ${service}"
-    cat "${service}/.env"
+    cat "${service_full_path}/.env"
+}
+
+function config() {
+    local service=$1
+    local service_full_path="${SERVICES_PATH}/${service}"
+    if [ ! -f "${service_full_path}/config.sh" ]; then
+        echo "No config.sh file found for ${service}"
+        return
+    fi
+    "${service_full_path}"/config.sh
 }
 
 function edit() {
     local service=$1
+    local service_full_path="${SERVICES_PATH}/${service}"
     merge "${service}" >>/dev/null
     echo "Editing ${service}"
-    touch "${service}/conf/0001-edit.env"
+    touch "${service_full_path}/conf/0001-edit.env"
     # Remove comments and duplicates from the edit file
     remove_comments_and_duplicates "${service}/conf/0001-edit.env"
     # Add the .env as commented lines to the edit
-    sed 's/^/# /' "${service}/.env" >>"${service}/conf/0001-edit.env"
+    sed 's/^/# /' "${service_full_path}/.env" >>"${service_full_path}/conf/0001-edit.env"
     # Edit the edit file
     EDITOR=$(set_text_editor)
     if [ $? != 0 ]; then
         echo "Invalid editor selected: $EDITOR"
     fi
-    read -rep "Do you want to edit the main configuration: ${service}/conf/0001-edit.env? (y/n)" answer
+    read -rep "Do you want to edit the main configuration: ${service_full_path}/conf/0001-edit.env? (y/n)" answer
             if [[ $answer == [yY] ]]; then
                 set -e
-                $EDITOR "${service}/conf/0001-edit.env"
+                $EDITOR "${service_full_path}/conf/0001-edit.env"
                 set +e
-                echo -e "Contents from ${service}/conf/0001-edit.env were merged with the default values, the outcome is stored at ${service}/.env (used by docker-compose)"
+                echo -e "Contents from ${service_full_path}/conf/0001-edit.env were merged with the default values, the outcome is stored at ${service_full_path}/.env (used by docker-compose)"
             fi
     merge "${service}" > /dev/null
     # Look for files ending in json or yml in conf
-    for file in "${service}"/conf/*.{json,yml}; do
+    for file in "${service_full_path}"/conf/*.{json,yml}; do
         if [ -f "${file}" ]; then
             read -rep "Do you want to edit ${file}? (y/n) " answer
             if [[ $answer == [yY] ]]; then
@@ -295,11 +333,12 @@ function edit() {
 
 function view() {
     local service=$1
+    local service_full_path="${SERVICES_PATH}/${service}"
     merge "${service}" >>/dev/null
-    echo -e "\n${service}/.env:"
+    echo -e "\n${service_full_path}/.env:"
     cat "${service}/.env"
     # Look for files ending in json or yml in conf
-    for file in "${service}"/conf/*.{json,yml}; do
+    for file in "${service_full_path}"/conf/*.{json,yml}; do
         if [ -f "${file}" ]; then
         sleep 1
             echo -e "\n#########################################################"
@@ -313,30 +352,30 @@ function view() {
 function set_example () {
     local service=$1
     local example=$2
-    local examples_path="${service}/examples"
-    echo "#" >> "${service}/conf/0001-edit.env"
-    if [ -f "${service}/conf/0099-example.env" ]; then
-        rm "${service}/conf/0099-example.env"
+    local service_full_path="${SERVICES_PATH}/${service}"
+    local examples_path="${service_full_path}/examples"
+    echo "#" >> "${service_full_path}/conf/0001-edit.env"
+    if [ -f "${service_full_path}/conf/0099-example.env" ]; then
+        rm "${service_full_path}/conf/0099-example.env"
     fi
     for file in "${examples_path}/${example}"/*; do
         if [[ "$file" == *0001-edit.env ]]; then
-            cat "$file" >> "${service}/conf/0001-edit.env"
+            cat "$file" >> "${service_full_path}/conf/0001-edit.env"
         fi
-        cp "$file" "${service}/conf"
+        cp "$file" "${service_full_path}/conf"
     done
-    echo "#" >> "${service}/conf/0001-edit.env"
-    echo "EXAMPLE=${example}" >> "${service}/conf/0001-edit.env"
-    remove_comments_and_duplicates "${service}/conf/0001-edit.env"
+    echo "#" >> "${service_full_path}/conf/0001-edit.env"
+    echo "EXAMPLE=${example}" >> "${service_full_path}/conf/0001-edit.env"
+    echo "SIO_ENTRYPOINT=/etc/sio/sio.json" >> "${service_full_path}/conf/0001-edit.env"
+    remove_comments_and_duplicates "${service_full_path}/conf/0001-edit.env"
     merge "${service}" >>/dev/null
     echo "Example set for ${service}: ${example}"
 }
 
 function select_example() {
     local service=$1
-    if [ ! -d "${service}" ]; then
-        service=${SERVICES_PATH}/${service}
-    fi
-    local examples_path="${service}/examples"
+    local service_full_path="${SERVICES_PATH}/${service}"
+    local examples_path="${service_full_path}/examples"
     if [ -d "${examples_path}" ]; then
         local examples=($(ls "${examples_path}"))
         if [ ${#examples[@]} -eq 0 ]; then
@@ -392,13 +431,15 @@ function create_network() {
 
 function depends() {
     local service=$1
+    local service_full_path="${SERVICES_PATH}/${service}"
+    
     # Check if the folder contains the "depends" file
-    if [ -f "${service}/depends" ]; then
+    if [ -f "${service_full_path}/depends" ]; then
         # Read the contents of the "depends" file
-        files=$(grep "file" "${service}"/depends | awk '{print $2}')
-
+        files=$(grep "file" "${service_full_path}"/depends | awk '{print $2}')
         # Loop through the files
         for file in $files; do
+            echo "Checking file dependency: '$file'..."
             # Replace variables in the file string
             file=$(eval echo "$file")
             if [ -f "$file" ]; then
@@ -411,7 +452,7 @@ function depends() {
         done
 
         # Read the contents of the "depends" file
-        endpoints=$(grep "endpoint" "${service}"/depends | awk '{print $2}')
+        endpoints=$(grep "endpoint" "${service_full_path}"/depends | awk '{print $2}')
 
         # Loop through the endpoints
         for endpoint in $endpoints; do
@@ -423,9 +464,12 @@ function depends() {
                     gateway_ip=$(awk '/32 host/ { print i } {i=$2}' /proc/net/fib_trie | head -n 1)
                 fi
                 endpoint=${endpoint/gateway_ip/$gateway_ip}
+            else
+                endpoint=${endpoint/gateway_ip/localhost}
             fi
             up=0
             # Loop for 15 seconds or until the endpoint is up
+            echo "Checking endpoint dependency: '$endpoint'..."
             for ((i = 0; i < 15; i++)); do
                 if check_endpoint "$endpoint"; then
                     # Endpoint is up, so print "service ready"
@@ -444,16 +488,17 @@ function depends() {
             fi
         done
 
-        enabled_services_up=$(grep "enabled_service_up" "${service}"/depends | awk '{print $2}')
+        enabled_services_up=$(grep "enabled_service_up" "${service_full_path}"/depends | awk '{print $2}')
 
         # Loop through the services
         for enabled_service in $enabled_services_up; do
+            echo "Checking service dependency: '$enabled_service'..."
             if [ -f "${SERVICES_PATH}/${enabled_service}/disabled" ]; then
                 echo "Service '$enabled_service' is disabled. Skipping"
             else
                 up=0
                 for ((i = 0; i < 5; i++)); do
-                    if ! check_service_up "${SERVICES_PATH}/${enabled_service}"; then
+                    if ! check_service_up "${enabled_service}"; then
                         echo "Waiting for service: '$enabled_service' to be up..."
                         sleep 3
                     else
@@ -462,7 +507,7 @@ function depends() {
                     fi
                 done
                 if [ $up -eq 0 ]; then
-                    echo "Error: service '$enabled_service' was not up after 15 seconds"
+                    echo "Error: service '$enabled_service' was not up after 5 seconds"
                     echo "Continuing execution."
                 fi
             fi
@@ -473,13 +518,17 @@ function depends() {
 
 function up() {
     local service=$1
+    local service_full_path="${SERVICES_PATH}/${service}"
+    if [ ! -f "${service_full_path}/docker-compose.yml" ]; then
+        echo "Service ${service} not found."
+        return
+    fi
     # Check if disabled file exists
-    if [ -f "${service}/disabled" ]; then
+    if [ -f "${service_full_path}/disabled" ]; then
         echo "Skipping ${service} : disabled file found"
         return
     fi
-    service_name=$(basename "${service}")
-    echo "Bringing up ${service_name}"
+    echo "Bringing up ${service}"
     merge "${service}"
     compose_up "${service}" &
     sleep 1
@@ -491,7 +540,7 @@ function compose_up() {
         echo "Skipping ${service} : depends failed"
         return
     fi
-    cd "${service}" || exit 1
+    cd "${SERVICES_PATH}/${service}" || exit 1
     echo "Starting ${service}"
     ${DOCKER_COMPOSE} up -d
     cd "${SERVICES_PATH}" || exit 1
@@ -500,7 +549,7 @@ function compose_up() {
 function down() {
     local service=$1
     echo "Stopping ${service}"
-    cd "${service}" || exit 1
+    cd "${SERVICES_PATH}/${service}" || exit 1
     ${DOCKER_COMPOSE} down
     cd "${SERVICES_PATH}" || exit 1
 }
@@ -513,9 +562,9 @@ function restart() {
 
 function enable() {
     local service=$1
-    if [ -f "${service}/disabled" ]; then
+    if [ -f "${SERVICES_PATH}/${service}/disabled" ]; then
         echo "Enabling ${service}."
-        rm "${service}/disabled"
+        rm "${SERVICES_PATH}/${service}/disabled"
     else
         echo "Service ${service} was already enabled."
     fi
@@ -523,21 +572,22 @@ function enable() {
 
 function disable() {
     local service=$1
-    if [ -f "${service}/disabled" ]; then
+    if [ -f "${SERVICES_PATH}/${service}/disabled" ]; then
         echo "Skipping ${service} : disabled file found."
         return
     else
         echo "Disabling ${service}"
-        touch "${service}/disabled"
+        touch "${SERVICES_PATH}/${service}/disabled"
     fi
+    down "${service}"
 }
 
 function status() {
     local service=$1
-    if [ -f "${service}/disabled" ]; then
+    if [ -f "${SERVICES_PATH}/${service}/disabled" ]; then
         echo "disabled"
     else
-        cd "${service}" || exit 1
+        cd "${SERVICES_PATH}/${service}" || exit 1
         if ${DOCKER_COMPOSE} ps | grep -q "Up"; then
             echo "up"
         else
@@ -550,13 +600,13 @@ function status() {
 function ps() {
     printf "%-20s %s\n" "SERVICE NAME" "STATUS"
     printf "%-20s %s\n" "------------" "------"
-    for service in "${SERVICES_PATH}"/*; do
-        if [ -d "${service}" ] && [ -f "${service}/docker-compose.yml" ]; then
-            service_name=$(basename "${service}")
-            if [ -f "${service}/disabled" ]; then
+    for service_full_path in "${SERVICES_PATH}"/*; do
+        if [ -d "${service_full_path}" ] && [ -f "${service_full_path}/docker-compose.yml" ]; then
+            service_name=$(basename "${service_full_path}")
+            if [ -f "${service_full_path}/disabled" ]; then
                 printf "%-20s %s\n" "${service_name}" "disabled"
             else
-                cd "${service}" || exit 1
+                cd "${service_full_path}" || exit 1
                 if ${DOCKER_COMPOSE} ps | grep -q "Up"; then
                     printf "%-20s %s\n" "${service_name}" "enabled (running)"
                 else
@@ -580,6 +630,26 @@ function license() {
             ${EDITOR} "${LICENSE_PATH}/sighthound-license.json"
         fi
     fi
+}
+
+select_live555_video() {
+  if [ -n "$1" ]; then
+    file_path="$1"
+  else
+    read -u 0 -rep "Enter the path of an MKV file for the example live555 video:" file_path </dev/tty
+  fi
+
+  if [[ $file_path == *.mkv ]]; then
+    if [ -f "$file_path" ]; then
+      mkdir -p "${SERVICES_PATH}/live555/test-data"
+      cp "$file_path" "${SERVICES_PATH}/live555/test-data/my-video.mkv"
+      echo "Selected file: $file_path"
+    else
+      echo "Invalid file path or file does not exist: $file_path"
+    fi
+  else
+    echo "Invalid file format. Please select an MKV file."
+  fi
 }
 
 function element_in_list() {
@@ -622,32 +692,32 @@ function interactively_handle_service() {
             break
             ;;
         "Enable service")
-            enable "${service_full_path}"
+            enable "${service}"
             break
             ;;
         "Restart service")
-            enable "${service_full_path}"
-            restart "${service_full_path}"
+            enable "${service}"
+            restart "${service}"
             break
             ;;
         "Stop service")
-            stop "${service_full_path}"
+            stop "${service}"
             break
             ;;
         "Disable service")
-            disable "${service_full_path}"
+            disable "${service}"
             break
             ;;
         "View service configuration")
-            view "${service_full_path}"
+            view "${service}"
             break
             ;;
         "Enable example configuration")
-            select_example "${service_full_path}"
+            select_example "${service}"
             break
             ;;
         "$command_capitalized service")
-            $command "${service_full_path}"
+            $command "${service}"
             break
             ;;
         *)
@@ -729,30 +799,46 @@ function apply_to_services() {
                     echo "### ${service}"
                     echo "###############################################"
                     echo "Applying command '${COMMAND}' to ${service}"
-                    service_full_path="${SERVICES_PATH}/${service}"
                 fi
-                service_full_path="${SERVICES_PATH}/${service}"
-                $COMMAND "${service_full_path}"
+                $COMMAND "${service}"
             else
                 echo "Unknown service: ${service}"
                 echo "Available services: ${AVAILABLE_SERVICES}"
             fi
         done
         if [ "${COMMAND}" == "restart" ] || [ "${COMMAND}" == "up" ] || [ "${COMMAND}" == "down" ]; then
-            echo "Waiting for services to ${COMMAND}..."
+            echo "Waiting for services to finish: ${COMMAND}..."
         fi
         wait
         ;;
     esac
 }
 
-LIST_OF_COMMANDS="    merge - Combine several configuration files into a single .env file
+function apply() {
+    filename=$1
+    # Check if file exists
+    if [ ! -f "$filename" ]; then
+        echo "File not found: $filename"
+        exit 1
+    fi
+    while IFS= read -r line || [[ -n "$line" ]]
+    do
+        echo "- $line"
+        $line
+    done < "$filename"
+    wait
+    echo "Done"
+}
+
+LIST_OF_COMMANDS="    apply - Apply a configuration file
+    merge - Combine several configuration files into a single .env file
     up [service(s)] - Starts docker-compose service
     down [service(s)] - Stops docker-compose service
     restart [service(s)] - Restarts docker-compose service
     show [service(s)] - Displays .env conf of a service
     status [service(s)] - Show the status of running service
     edit [service(s)] - Modify configurations or settings of a service
+    config [service(s)] - Runs the configuration script of a service if available
     select_example [service(s)] - Select an example configuration for a service. E.g: select_example sio aqueduct
     enable [service(s)] - Turn on a service
     disable [service(s)] - Turn off a service
@@ -765,12 +851,12 @@ LIST_OF_COMMANDS="    merge - Combine several configuration files into a single 
 "
 
 COMMAND=$1
-shift 1
+shift 1 || true
 case $COMMAND in
-"select_example")
+"select_example" | "select_live555_video" | "apply" | "test_rtsp_stream")
     "$COMMAND" $@
     ;;
-"merge" | "up" | "down" | "restart" | "enable" | "disable" | "depends" | "edit"| "show" | "status")
+"merge" | "up" | "down" | "restart" | "enable" | "disable" | "depends" | "edit" | "config" | "show" | "status")
     apply_to_services "$COMMAND" $@
     ;;
 "clean_media" | "clean_logs" | "clean_rabbitmq" | "remove_orphans" | "ps" | "license")

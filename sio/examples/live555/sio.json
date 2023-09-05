@@ -1,6 +1,6 @@
 {
     "one-person-one-car" : {
-        "pipeline"      : "./share/pipelines/TrafficAnalytics/TrafficAnalyticsRTSP.yaml",
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
         "restartPolicy" : "restart",
         "parameters" : {
             "VIDEO_IN" : "rtsp://live555/my-video.mkv",

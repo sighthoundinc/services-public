@@ -1,8 +1,8 @@
 {
     "analytics": {
         "folderPath": {
-            "input": "/data/media",
-            "output": "/data/media/processed"
+            "input": "/tmp/inputFiles",
+            "output": "/tmp/inputFiles/processed"
         }
     },
     "net": {

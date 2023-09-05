@@ -2,7 +2,7 @@ version: "3"
 services:
 
   analytics:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:r230605
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:r230828
     restart: unless-stopped
     environment:
       # Location where SIO will place generated model engine files
@@ -13,15 +13,17 @@ services:
       # Read-only shared folder for data exchange with host / other containers.
       # We'll use it for license, config files, etc.
       - ./config:/config:ro
-      # Writable shared folder for data exchange with host / other containers.
+      # Writable shared folder for data exchange with host
       # We'll use it for storing the generated model files, data exchange folder, etc.
       - ./data:/data
-    entrypoint: 
+      # Shared memory-backed folder for data exchange with other containers
+      - run_vol:/tmp/inputFiles
+    entrypoint:
       - /sighthound/sio/bin/runPipelineSet
       # Pipeline configuration file
       - /config/analytics/pipelines.json
       # License at the path accessible in the container
-      - --license-path=/config/sighthound-license.json 
+      - --license-path=/config/sighthound-license.json
       # Log level (info, debug, trace)
       - --log=${SIO_LOG_LEVEL-info}
 
@@ -37,7 +39,26 @@ services:
     volumes:
       # Overrides default config
       - ./config/gateway/service.json:/cloudvx/config/local.json:ro
-      # Writable shared folder for data exchange with host / other containers.
+      # Writable shared folder for data exchange with host
       - ./data:/data
+      # Shared memory-backed folder for data exchange with other containers
+      - run_vol:/tmp/inputFiles
     depends_on:
       - analytics
+
+  # UI demo avialable at http://localhost:8484
+  # Remove this service in production.
+  ui-demo:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/rest-api-gateway-ui-demo:latest
+    restart: unless-stopped
+    ports:
+      - "8484:80"
+    depends_on:
+      - gateway
+
+# Use tmpfs for data exchange between the two containers
+volumes:
+  run_vol:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
