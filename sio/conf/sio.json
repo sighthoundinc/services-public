@@ -3,7 +3,7 @@
         "pipeline"      : "./share/pipelines/TrafficAnalytics/TrafficAnalyticsRTSP.yaml",
         "restartPolicy" : "restart",
         "parameters" : {
-            "VIDEO_IN" : "rtsp://sh-ui-backend:8555/live",
+            "VIDEO_IN" : "rtsp://192.168.99.24:8561/linecross",
             "sourceId" : "camera1",
             "recordTo":"/data/sighthound/media/output/video/camera1/",
             "imageSaveDir":"/data/sighthound/media/output/image/camera1/",
@@ -12,7 +12,10 @@
             "amqpExchange":"anypipe",
             "amqpUser":"guest",
             "amqpPassword":"guest",
-            "amqpErrorOnFailure":"true"
+            "amqpErrorOnFailure":"true",
+	    "sensorsConfigFile":"/etc/sio/sensors.json",
+	    "debugSettings":"eventAnalytics",
+	    "useTracker":"true"
         }
     }
 }

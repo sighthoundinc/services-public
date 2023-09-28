@@ -1,0 +1,25 @@
+{
+  "countSensors": [
+    {
+      "id": "27B29885-3EB9-4978-A3BD-6FF18924AA62",
+      "name": "hallway",
+      "classes": [
+        "person"
+      ],
+      "clockwiseName": "clockwise",
+      "counterclockwiseName": "counterclockwise",
+      "referencePoint": "bottom_center",
+      "sendUpdate": "onChange",
+      "lineCoordinates": [
+        {
+          "x": 0.4304635761589404,
+          "y": 0.6706036745406824
+        },
+        {
+          "x": 0.6298749080206034,
+          "y": 0.7178477690288714
+        }
+      ]
+    }
+  ]
+}
