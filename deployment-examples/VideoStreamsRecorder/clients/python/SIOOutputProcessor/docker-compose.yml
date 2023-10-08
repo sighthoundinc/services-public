@@ -1,0 +1,15 @@
+version: '3.7'
+services:
+  example-sio-output-processor:
+    build: .
+    container_name: example-sio-output-processor
+    restart: no
+    network_mode: host
+    environment:
+      # Configure the application
+      - AMQP_HOST=localhost
+      - AMQP_PORT=5672
+    volumes:
+      - .:/usr/src/app
+      # Make sure basic building blocks are on PYTHONPATH
+      - ../../../../ClientLib/lib:/usr/src/app/lib

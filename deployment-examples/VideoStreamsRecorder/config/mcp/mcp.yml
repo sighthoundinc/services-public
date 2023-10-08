@@ -1,0 +1,33 @@
+# RabbitMQ configuration. Must match that used by SIO pipelines
+amqp:
+  enable: true
+  host: rabbitmq_svc
+  username: guest
+  password: guest
+  exchange: sio
+  routingKey: "#"
+  maxLengthSize: 100Mb
+backend:
+  host: 0.0.0.0
+  port: 9097
+  username: root
+  password: root
+# Database configuration
+sqlite:
+  enable: true
+  path: /data/sighthound/db/sqlite.db
+  auditLogFile: /data/sighthound/logs/mcp/sqlite.log
+  auditMaxMb: 100
+# Path where media is being recorded. Must match that used by SIO pipelines
+media:
+  path: /data/sighthound/media
+# Cleaner configuration defining lifecycle of the media and storage constraints
+cleaner:
+  enable: true
+  maxDiskUtilization: 90
+  maxMediaSize: 2 GB
+  auditLogFile: /data/sighthound/logs/mcp/cleaner.log
+  auditMaxMb: 100
+logs:
+  level: info
+  format: human-readable

@@ -42,11 +42,13 @@ def main():
     amqp_listener.set_callback(sio_drawer.stream_callback)
     def start_amqp():
         amqp_listener.start()
+        stream.stop()
     # Start the stream and the listener in parallel
-    thread = threading.Thread(target=start_amqp)
-    thread.start()
+    amqp_thread = threading.Thread(target=start_amqp)
+    amqp_thread.start()
     stream.start()
-    thread.join()
+    amqp_thread.join()
+    print("Exiting...")
     
     
 

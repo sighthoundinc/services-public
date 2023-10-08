@@ -1,0 +1,63 @@
+version: "3"
+services:
+
+  # By default pipelines.json will point to streams served by this container.
+  # If you point to your own cameras or streams, this container has no other
+  # function and can be disabled.
+  live555_svc:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/live555:latest
+    container_name: sample-live555
+    restart: unless-stopped
+    ports:
+      - "8554:554"
+
+  # AMQP broker to receive analytics data
+  rabbitmq_svc:
+    image: docker.io/rabbitmq:3.8-management
+    container_name: sample-rabbitmq
+    restart: unless-stopped
+    volumes:
+      - ./config/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
+      - ./config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - rabbitmq_persistent_storage:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  # The SIO analytics container, consuming the streams and analyzing them
+  analytics_svc:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:r230908
+    container_name: sample-sio
+    restart: unless-stopped
+    environment:
+      # Location where SIO will place generated model engine files
+      - SIO_DATA_DIR=/data/sio-cache
+    # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
+    runtime: ${SIO_DOCKER_RUNTIME-runc}
+    volumes:
+      # Read-only shared folder for data exchange with host / other containers.
+      # We'll use it for license, config files, etc.
+      - ./config:/config:ro
+      # Writable shared folder for data exchange with host / other containers.
+      # We'll use it for storing the generated model files, data exchange folder, etc.
+      - ./data:/data
+    entrypoint:
+      - /sighthound/sio/bin/runPipelineSet
+      # Pipeline configuration file
+      - /config/analytics/pipelines.json
+      # License at the path accessible in the container
+      - --license-path=/config/sighthound-license.json
+      # Log level (info, debug, trace)
+      - --log=${SIO_LOG_LEVEL-info}
+    depends_on:
+      # This dependency can be removed with live555 if no longer necessary.
+      - live555_svc
+      - rabbitmq_svc
+
+volumes:
+  rabbitmq_persistent_storage:

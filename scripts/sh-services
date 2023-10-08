@@ -7,7 +7,7 @@ SCRIPT_PATH="$(
 export SCRIPT_PATH
 SH_BASE="$(realpath "${SCRIPT_PATH}"/../..)"
 export SH_BASE
-SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/..)"
+SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/../services)"
 export SERVICES_PATH
 MEDIA_PATH="${SH_BASE}"/media
 export MEDIA_PATH
@@ -120,7 +120,7 @@ function remove_orphans() {
     for container in $containers; do
         container_name=$(docker inspect -f '{{.Name}}' "${container}")
         working_dir=$(docker inspect -f '{{(index .Config.Labels "com.docker.compose.project.working_dir")}}' "${container}")
-        if [[ "${working_dir}" == "${SERVICES_PATH}"* ]]; then
+        if [[ "${working_dir}" == "${SH_BASE}"* ]]; then
             echo "Found container ${container_name} with working dir: '${working_dir}'"
             # If the working dir does not exist anymore and starts with 'SERVICES_PATH', then remove the container
             if [[ ! -d "${working_dir}" ]]; then
@@ -361,12 +361,14 @@ function set_example () {
     for file in "${examples_path}/${example}"/*; do
         if [[ "$file" == *0001-edit.env ]]; then
             cat "$file" >> "${service_full_path}/conf/0001-edit.env"
+        elif [[ ! "$file" == *.md ]]; then
+            cp "$file" "${service_full_path}/conf"
+        else
+            cat "$file"
         fi
-        cp "$file" "${service_full_path}/conf"
     done
     echo "#" >> "${service_full_path}/conf/0001-edit.env"
     echo "EXAMPLE=${example}" >> "${service_full_path}/conf/0001-edit.env"
-    echo "SIO_ENTRYPOINT=/etc/sio/sio.json" >> "${service_full_path}/conf/0001-edit.env"
     remove_comments_and_duplicates "${service_full_path}/conf/0001-edit.env"
     merge "${service}" >>/dev/null
     echo "Example set for ${service}: ${example}"

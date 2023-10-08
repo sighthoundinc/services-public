@@ -1,0 +1,20 @@
+[
+    {
+      "name": "plateBike_SizeFilter",
+      "type": "size",
+      "subtype": "dimension",
+      "max": 0,
+      "min": 10,
+      "classes": ["licenseplate", "motorbike"],
+      "debug": false
+    },
+    {
+      "name": "vehicle_SizeFilter",
+      "type": "size",
+      "subtype": "dimension",
+      "max": 0,
+      "min": 15,
+      "classes": ["car", "bus", "truck"],
+      "debug": false
+    }
+  ]

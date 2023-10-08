@@ -15,6 +15,7 @@ Gst.init([])
 # properties to it.
 class SighthoundRtspMediaFactory(GstRtspServer.RTSPMediaFactory):
     def __init__(self, conf):
+        self.frame = np.zeros((10, 10, 3), np.uint8)
         GstRtspServer.RTSPMediaFactory.__init__(self)
         self.conf = conf
         self.number_frames = 0
@@ -132,6 +133,9 @@ class GstServer(GstRtspServer.RTSPServer):
             loop.run()
         except Exception as e:
             print(e)
+
+    def stop(self):
+        loop.quit()
     
     def get_factory(self):
         return self.factory

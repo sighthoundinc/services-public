@@ -1,0 +1,54 @@
+{
+    "stream1" : {
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "VIDEO_IN"  : "rtsp://live555_svc:554/StreetVideo1.mkv",
+            "boxFilterConfig" : "/config/analytics/boxFilter.json",
+            "detectionModel" : "gen6es",
+            "lptModel" : "gen5ss",
+            "lptFilter" : "['eu', 'us']",
+            "lptMinConfidence" : "0.5",
+            "sourceId" : "rtsp-stream-1",
+            "lptPreferAccuracyToSpeed" : "false",
+            "amqpHost" : "rabbitmq_svc",
+            "amqpPort" : "5672",
+            "amqpUser" : "guest",
+            "amqpPassword" : "guest",
+            "amqpExchange" : "sio",
+            "amqpRoutingKey" : "sio",
+            "amqpErrorOnFailure" : "true",
+            "recordTo" : "/data/media/output/video/rtsp-stream-1/",
+            "imageSaveDir" : "/data/media/output/image/rtsp-stream-1/",
+            "lptStabilizationDelay" : "10",
+            "useTracker" : "true",
+            "lptSkipCarsWithoutLPs" : "true"
+        }
+    },
+    "stream2" : {
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "VIDEO_IN"  : "rtsp://live555_svc:554/StreetVideo2.mkv",
+            "boxFilterConfig" : "/config/analytics/boxFilter.json",
+            "detectionModel" : "gen6es",
+            "lptModel" : "gen5ss",
+            "lptFilter" : "['eu', 'us']",
+            "lptMinConfidence" : "0.5",
+            "sourceId" : "rtsp-stream-2",
+            "lptPreferAccuracyToSpeed" : "false",
+            "amqpHost" : "rabbitmq_svc",
+            "amqpPort" : "5672",
+            "amqpUser" : "guest",
+            "amqpPassword" : "guest",
+            "amqpExchange" : "sio",
+            "amqpRoutingKey" : "sio",
+            "amqpErrorOnFailure" : "true",
+            "recordTo" : "/data/media/output/video/rtsp-stream-2/",
+            "imageSaveDir" : "/data/media/output/image/rtsp-stream-2/",
+            "lptStabilizationDelay" : "10",
+            "useTracker" : "true",
+            "lptSkipCarsWithoutLPs" : "true"
+        }
+    }
+}
