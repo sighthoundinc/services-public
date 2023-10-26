@@ -4,7 +4,7 @@ This sample illustrates a deployment of Sighthound Vehicle Analytics pipeline an
 
 This deployment is comprised of 3 services: SIO's [Vehicle Analytics](https://dev.sighthound.com/sio/pipelines/VehicleAnalytics/), AMQP broker and an optional RTSP stream provider.
 
-Contact [support@sighthound.com](mailto:support@sighthound.com) with any questions, and visit our [Developer Portal](https://dev.sighthound.com/cloud-api/docs/quickstart/docker/) for more information.
+Contact [support@sighthound.com](mailto:support@sighthound.com) with any questions, and visit our [Developer Portal](https://dev.sighthound.com) for more information.
 
 
 ## Configuration

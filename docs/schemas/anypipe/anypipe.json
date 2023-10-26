@@ -1,0 +1,610 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://example.com/sighthoundAnalytics.json",
+  "description": "Analytics data sent by the Sighthound video/image analysis pipeline.  This data is sent based on configuration when the number of detected objects or attributes of detected objects changes, the confidence of detected objects or their attributes improves, or a configurable timeout occurs.",
+  "title": "Sighthound Analytics",
+  "type": "object",
+  "definitions": {
+    "updated": {
+      "$id": "#definitions/updated",
+      "type": "boolean",
+      "description": "Flag to indicate if the attribute is updated. True means updated, False means not updated."
+    },
+    "apiVersion": {
+      "$id": "#definitions/apiVersion",
+      "type": "object",
+      "major": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "The major version of the API schema, incremented on possible breaking changes."
+      },
+      "minor": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "The minor version of the API schema, incremented whenever the schema is changed, including addition of fields which should not break applications."
+      }
+    },
+    "framelinks": {
+      "$id": "#definitions/framelinks",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Link type: Ex: image,video"
+          },
+          "path": {
+            "type": "string",
+            "description": "Path to media type"
+          },
+          "startTs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Start Timestamp"
+          },
+          "endTs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "End Timestamp"
+          },
+          "format": {
+            "type": "string",
+            "description": "File format. Ex: jpeg, mp4, ts..."
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of link object. Ex: Closed, recording, ..."
+          }
+        },
+        "required": [
+          "type",
+          "path"
+        ]
+      }
+    },
+    "mediaEvents": {
+      "$id": "#definitions/mediaEvents",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "Media Event type: Ex: image,video"
+          },
+          "msg": {
+            "type": "string",
+            "description": "Message content"
+          },
+          "startTs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Start of Event Timestamp"
+          },
+          "endTs": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "End of Event Timestamp"
+          },
+          "format": {
+            "type": "string",
+            "description": "Message format. Ex: json, jpeg, mp4, ts..."
+          }
+        },
+        "required": [
+          "type",
+          "msg"
+        ]
+      }
+    },
+    "objectsInRegionCount": {
+      "$id": "#objectsInRegionCount",
+      "type": "integer",
+      "minimum": 0,
+      "description": "The total number of objects of a specific type detected within a region of interest, excluding those filtered out based on sensor configuration."
+    },
+    "objectsCountbyMetaClass": {
+      "$id": "#objectsCountbyMetaClass",
+      "type": "object",
+      "description": "The total number of detected objects in a region grouped by metaclasses.",
+      "patternProperties": {
+        "^.*$": {
+          "type": "integer",
+          "description": "The total number of objects detected within a region of interest grouped by metaclass. Metaclasses represent higher-level categories that objects may belong to, such as 'vehicle' or 'people,' while classes represent more specific types, such as 'car' or 'person'.",
+          "minimum": 0
+        }
+      }
+    },
+    "objectsCountbyClass": {
+      "$id": "#objectCountbyClass",
+      "type": "object",
+      "description": "The total number of detected objects in a region grouped by classes.",
+      "patternProperties": {
+        "^.*$": {
+          "type": "integer",
+          "description": "The total number of objects detected within a region of interest grouped by class. For example, if the sensor is configured to detect vehicles, this property may include counts of 'car,' 'bus,' and 'truck'.",
+          "minimum": 0
+        }
+      }
+    },
+    "direction": {
+      "$id": "#direction",
+      "type": "string",
+      "description": "The direction of an object's trajectory relative to the sensor's line, with the first point (A) as the pivot point. 'Clockwise' means the object is moving in a clockwise direction relative to the line, while 'counterclockwise' means the object is moving in a counterclockwise direction."
+    },
+    "cwCount": {
+      "$id": "#cwCount",
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of clockwise crossings."
+    },
+    "ccwCount": {
+      "$id": "#ccwCount",
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of counterclockwise crossings."
+    },
+    "state": {
+      "$id": "state",
+      "type": "string",
+      "enum": [
+        "enter",
+        "present",
+        "exit"
+      ],
+      "description": "The current state of the sensor, which can be one of three values: 'enter' when an object enters the region of interest, 'present' when one or more objects are present within the region, and 'exit' when all objects have left the region. This property is useful for tracking the duration of an event and determining when it begins and ends."
+    },
+    "startedAt": {
+      "$id": "startedAt",
+      "type": "integer",
+      "minimum": 0,
+      "description": "The time in milliseconds since the epoch (GMT) when the event started, or when a link was established."
+    },
+    "endedAt": {
+      "$id": "endedAt",
+      "type": "integer",
+      "minimum": 0,
+      "description": "The time in milliseconds since the epoch (GMT) when the event ended."
+    },
+    "sensorId": {
+      "$id": "sensorId",
+      "type": "string",
+      "description": "The globally unique sensor ID corresponding to this sensor.  This ID is unique for a given sensor and stream combination, and tracks all historical events relative to this sensor.  It also tracks configuration of the sensor, including the definition of lines or polygons and class filters defining the sensor."
+    },
+    "eventId": {
+      "$id": "eventId",
+      "type": "string",
+      "description": "The globally unique event ID corresponding to this event."
+    },
+    "updateCount": {
+      "$id": "updateCount",
+      "type": "integer",
+      "minimum": 0,
+      "description": "The cumulative number of updates sent for this sensor, starting with 1 for the initial update and incremented once for each update sent for each unique sensor event ID. An update refers to a change in the state of the sensor due to a corresponding sensor event (entry, exit, crossing, ...).  For sensors which include multiple updates per sensor event (presense sensors), the updateCount will be reset to 1 to indicate the first update for a given event.  For sensors (count) which only include 1 update per event, updateCount will be cumulative and count the total number of events per sensor."
+    },
+    "referencePoint": {
+      "$id": "referencePoint",
+      "type": "string",
+      "title": "Reference point of region intersection",
+      "description": "The point of the bounding box which intersected the region of interest, based on sensor configuration.  Other points not listed here may have also intersected the region of interest.\n  This field will only be present when referencePoint is specified in the sensor configuration.",
+      "default": "bottom_right",
+      "enum": [
+        "center",
+        "top_center",
+        "top_left",
+        "top_right",
+        "bottom_left",
+        "bottom_right",
+        "bottom_center"
+      ],
+      "enumNames": [
+        "Center Point",
+        "Top Center",
+        "Top Left Corner",
+        "Top Right Corner",
+        "Bottom Left Corner",
+        "Bottom Right Corner",
+        "Bottom Center"
+      ]
+    },
+    "links": {
+      "$id": "links",
+      "type": "array",
+      "description": "Links between objects (see objectAnalytics schema) and events.",
+      "items": {
+        "type": "object",
+        "metaClass": {
+          "type": "string",
+          "description": "The name of the Meta Class pointed to \nby this link."
+        },
+        "id": {
+          "type": "string",
+          "description": "The ID of the Meta Class, which can be \n used to reference the specific object in the     \n metaClasses map."
+        },
+        "startedAt": {
+          "$ref": "#/definitions/startedAt"
+        },
+        "state": {
+          "$ref": "#/definitions/state"
+        },
+        "union": {
+          "$id": "union",
+          "type": "integer",
+          "minimum": 0,
+          "description": "The percentage of area of the object detected which overlaps with the region defined for the sensor."
+        },
+        "referencePoint": {
+          "$ref": "#/definitions/referencePoint"
+        },
+        "required": [
+          "metaClass",
+          "id"
+        ]
+      }
+    },
+    "presenceSensor": {
+      "$id": "#presenceSensor",
+      "type": "object",
+      "description": "Describes an event where one or more objects are present in a region of interest.\n The event starts when the first object enters a region of interest.  Updates are sent for each change in status, with updateCount incremented for each update.  When the last object exits and the region is empty, the sensor event will become immutable and will track the total amount of time at least one object was present in the region of interest.  An entry of an object will start a new event and reset the updateCount to 1.  Region definitons, object filtering and other items related to sensor definitions are tracked as a part of the sensorId associated with the event.",
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "objectsInRegionCount": {
+          "$ref": "#/definitions/objectsInRegionCount"
+        },
+        "objectsCountbyMetaClass": {
+          "$ref": "#/definitions/objectsCountbyMetaClass"
+        },
+        "objectsCountbyClass": {
+          "$ref": "#/definitions/objectsCountbyClass"
+        },
+        "startedAt": {
+          "$ref": "#/definitions/startedAt"
+        },
+        "updateCount": {
+          "$ref": "#/definitions/updateCount"
+        },
+        "endedAt": {
+          "$ref": "#/definitions/endedAt"
+        },
+        "links": {
+          "$ref": "#/definitions/links"
+        }
+      },
+      "required": [
+        "eventId",
+        "objectsInRegionCount",
+        "objectsCountbyMetaClass",
+        "objectsCountbyClass",
+        "startedAt",
+        "updateCount",
+        "links"
+      ],
+      "additionalProperties": false
+    },
+    "countSensor": {
+      "$id": "#countSensor",
+      "type": "object",
+      "description": "Describes an event where one object crosses a line",
+      "properties": {
+        "eventId": {
+          "$ref": "#/definitions/eventId"
+        },
+        "direction": {
+          "$ref": "#/definitions/direction"
+        },
+        "cwCount": {
+          "$ref": "#/definitions/cwCount"
+        },
+        "ccwCount": {
+          "$ref": "#/definitions/ccwCount"
+        },
+        "startedAt": {
+          "$ref": "#/definitions/startedAt"
+        },
+        "links": {
+          "$ref": "#/definitions/links"
+        }
+      },
+      "required": [
+        "eventId",
+        "direction",
+        "cwCount",
+        "ccwCount",
+        "startedAt",
+        "links"
+      ],
+      "additionalProperties": false
+    },
+    "sensorEvents": {
+      "type": "object",
+      "description": "A map of maps describing an event type. \n - The top level map key is a name describing the event type.  Supported types are presenceSensor, lineCrossingEvent, speedEvent. \n - The sub level map key is a Unique ID representing the event, used to map \n additional object properties.  This ID is guaranteed unique \n for each event for a given stream ID.",
+      "patternProperties": {
+        "^.*$": {
+          "type": "object",
+          "description": "A name describing an event type.",
+          "patternProperties": {
+            "^.*$": {
+              "description": "A Unique ID representing this event",
+              "example": "06138c16-ec45-45a9-bb57-31a08941e413",
+              "type": "array",
+              "items": {
+                "oneOf": [
+                  {
+                    "$ref": "#/definitions/presenceSensor"
+                  },
+                  {
+                    "$ref": "#/definitions/countSensor"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "detectionScore": {
+      "$id": "#detectionScore",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score for object detection, ranging from 0.0 to 1.0. A score of 1.0 indicates 100% confidence.When included in an attribute, this score represents the \n object Detection score for the parent object corresponding to the \n timestamp when the attribute value was determined."
+    },
+    "attributeScore": {
+      "$id": "#attributeScore",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score for attribute detection, ranging from 0.0 to 1.0. A score of 1.0 indicates 100% confidence."
+    },
+    "vehicle": {
+      "$id": "#definitions/vehicle",
+      "type": "object",
+      "description": "Information about the detected vehicle, including its make, model, and generation.",
+      "properties": {
+        "make": {
+          "type": "string",
+          "description": "The manufacturer of the detected vehicle, e.g., 'Toyota'."
+        },
+        "model": {
+          "type": "string",
+          "description": "The specific model of the detected vehicle, e.g., 'Camry'."
+        },
+        "generation": {
+          "type": "string",
+          "description": "The generation or variant of the detected vehicle, e.g., '2020'."
+        },
+        "type": {
+          "type": "string",
+          "description": "The category to which the detected vehicle belongs, e.g., 'Sedan'."
+        }
+      },
+      "required": [
+        "make",
+        "model",
+        "generation"
+      ],
+      "additionalProperties": true
+    },
+    "metaClasses": {
+      "$id": "#metaClasses",
+      "type": "object",
+      "description": "Meta classes include objects such as vehicles, license plates, and people. These are high-level classifications.",
+      "patternProperties": {
+        "^.*$": {
+          "description": "An plural MetaClass name.  Supported MetaClasses \n include:                                                           \n vehicles - Objects including cars, buses, trucks, motorbikes.    \n    Vehicles include objects which may potentially include license \n    plates, may include links to licensePlates.                   \n licensePlates - Objects which are detected/classified as license plates.                                                             \n people - Pedestrians or people riding skateboards, electric     \n scooter, wheelchairs,etc.",
+          "type": "object",
+          "patternProperties": {
+            "^.*$": {
+              "description": "A Unique ID representing this object, used to map \n additional object properties.   This ID is guaranteed unique \n for each object, regardless of streamId.  It  will change the object drops out of    \n detection/tracking",
+              "example": "06138c16-ec45-45a9-bb57-31a08941e413",
+              "type": "object",
+              "properties": {
+                "bestDetectionTimestamp": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "The analyticsTimestamp with highest confidence score for this object."
+                },
+                "class": {
+                  "type": "string",
+                  "description": "Object specific class returned by the model.  For objects of the vehicles metaclass this may include car, truck, bus, motorbike, etc based on model capabilities"
+                },
+                "additionalProperties": false,
+                "attributes": {
+                  "type": "object",
+                  "patternProperties": {
+                    "^.*$": {
+                      "additionalProperties": false,
+                      "description": "A map of attributes for this object. Not all atributes are supported for all object types.   Example attributes include:                             \n color - The color of an object                      \n lpString - A string representing license plate text \n     and numbers                                      \n lpRegion - A string representing license plate region \n  vehicleType - Make model and generation of the vehicle in a single string",
+                      "type": "object",
+                      "properties": {
+                        "attributeScore": {
+                          "$ref": "#/definitions/attributeScore"
+                        },
+                        "detectionScore": {
+                          "$ref": "#/definitions/detectionScore"
+                        },
+                        "updated": {
+                          "$ref": "#/definitions/updated"
+                        },
+                        "value": {
+                          "oneOf": [
+                            {
+                              "$ref": "#/definitions/vehicle"
+                            },
+                            {
+                              "type": "string"
+                            }
+                          ],
+                          "description": "A value of the attribute. The value is specific to the attribute type."
+                        },
+                        "debug": {
+                          "type": "object",
+                          "description": "Debug information, subject to change \n between releases. Do not use this object in an \n application.",
+                          "patternProperties": {
+                            "^.*$": {
+                              "type": "string"
+                            }
+                          }
+                        }
+                      },
+                      "required": [
+                        "attributeScore",
+                        "detectionScore",
+                        "value"
+                      ]
+                    }
+                  }
+                },
+                "links": {
+                  "description": "Links between Meta Class instances, for     \n example, between vehicles and license plates.",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "metaClass": {
+                        "type": "string",
+                        "description": "The name of the Meta Class pointed to \nby this link."
+                      },
+                      "id": {
+                        "type": "string",
+                        "description": "The ID of the Meta Class, which can be \n used to reference the specific object in the     \n metaClasses map."
+                      }
+                    },
+                    "required": [
+                      "metaClass",
+                      "id"
+                    ]
+                  }
+                },
+                "hash": {
+                  "type": "string",
+                  "description": "An object hash which uniquely identifies this object and associated attributes.  Will change when attributes change.  Reserved for future use"
+                },
+                "box": {
+                  "description": "The bounding box containing this object, in \n pixel coordinates where the top left corner of the    \n image is represented by pixel 0,0, corresponding to the image referenced by imageRef ",
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "height": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Height of the bounding box in pixels"
+                    },
+                    "width": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Width of the bounding box in pixels"
+                    },
+                    "x": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "X coordinate of the top left corner \n of the bounding box."
+                    },
+                    "y": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "description": "Y coordinate of the top left corner of \nthe bounding box"
+                    }
+                  },
+                  "required": [
+                    "height",
+                    "width",
+                    "x",
+                    "y"
+                  ]
+                },
+                "detectionScore": {
+                  "$ref": "#/definitions/detectionScore"
+                },
+                "updated": {
+                  "$ref": "#/definitions/updated"
+                },
+                "firstFrameTimestamp": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "The analyticsTimestamp with highest confidence score for this object."
+                }
+              },
+              "required": [
+                "box",
+                "detectionScore",
+                "class"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "apiVersion": {
+      "$ref": "#/definitions/apiVersion"
+    },
+    "analyticsTimestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Timestamp the frame corresponding to this analytics data was processed at, in milliseconds since the epoch and GMT timezone."
+    },
+    "sourceId": {
+      "type": "string",
+      "description": "A global unique ID representing the media source, for \ninstance a specific video stream from a camera sensor or RTSP feed, , or input source location for images or videos"
+    },
+    "frameId": {
+      "type": "string",
+      "description": "An ID corresponding to this frame, which may be used to \n access the image corresponding to all box coordinates and object \n detections represented in this object, via the Media Service API."
+    },
+    "frameDimensions": {
+      "type": "object",
+      "description": "The dimensions (width and height) of the frame represented by frameId.  Also used as the coordinate base for all bounding box coordinates.",
+      "properties": {
+        "w": {
+          "type": "number",
+          "description": "Width in pixels",
+          "minimum": 0
+        },
+        "h": {
+          "type": "number",
+          "description": "Height in pixels",
+          "minimum": 0
+        }
+      }
+    },
+    "frameTimestamp": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Timestamp of the frame corresponding to this analytics data, acccording to the source, in milliseconds since the epoch and GMT timezone."
+    },
+    "frameSource": {
+      "type": "string",
+      "descriptions": "An additional source descriptor, such as file path, name, or URI, in case source is a sequence of discrete items (such as in case of a watched folder)"
+    },
+    "metaClasses": {
+      "$ref": "#/definitions/metaClasses"
+    },
+    "sensorEvents": {
+      "$ref": "#/definitions/sensorEvents"
+    },
+    "links": {
+      "$ref": "#/definitions/framelinks"
+    },
+    "mediaEvents": {
+      "$ref": "#/definitions/mediaEvents"
+    }
+  },
+  "required": [
+    "analyticsTimestamp",
+    "sourceId",
+    "apiVersion",
+    "frameDimensions"
+  ],
+  "optional": [
+    "metaClasses",
+    "sensorEvents",
+    "frameSource"
+  ]
+}

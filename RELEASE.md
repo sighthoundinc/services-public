@@ -1,5 +1,12 @@
 # Release Notes
 
+
+
+## v1.5.2
+
+- docs: Add anypipe schemas
+- examples: Add StandaloneSIOWithExtension sample
+
 ## v1.5.1
 
 - SIO: change camera URL to rtsp://sh-camera-rtsp

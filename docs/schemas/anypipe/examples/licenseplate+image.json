@@ -1,0 +1,94 @@
+{
+    "apiVersion": {
+        "major": 1,
+        "minor": 1
+    },
+    "frameDimensions": {
+        "w": 1280,
+        "h": 720
+    },
+    "sourceId": "rtsp-stream-2",
+    "frameId": "rtsp-stream-2-frame-707-1698078858380",
+    "analyticsTimestamp": 1698079005009,
+    "frameTimestamp": 1698078993326,
+    "metaClasses": {
+        "licensePlates": {
+            "rtsp-stream-2-lp-6-1698078858380": {
+                "attributes": {
+                    "lpString": {
+                        "value": "EAIJ82",
+                        "attributeScore": 0.96,
+                        "detectionScore": 0.74,
+                        "updated": true
+                    },
+                    "lpRegion": {
+                        "value": "Florida",
+                        "attributeScore": 1.0,
+                        "detectionScore": 0.74,
+                        "updated": true
+                    }
+                },
+                "firstFrameTimestamp": 1698078993326,
+                "class": "licensePlate",
+                "bestDetectionTimestamp": 1698078993326,
+                "box": {
+                    "height": 44,
+                    "width": 73,
+                    "x": 32,
+                    "y": 248
+                },
+                "detectionScore": 0.74,
+                "updated": true,
+                "links": [
+                    {
+                        "metaClass": "vehicles",
+                        "id": "rtsp-stream-2-car-130-1698078858385"
+                    }
+                ]
+            }
+        },
+        "vehicles": {
+            "rtsp-stream-2-car-130-1698078858385": {
+                "attributes": {
+                    "vehicleType": {
+                        "value": "nissan,murano,2009 2014",
+                        "attributeScore": 0.1,
+                        "detectionScore": 0.94,
+                        "updated": true
+                    },
+                    "color": {
+                        "value": "silver/grey",
+                        "attributeScore": 0.95,
+                        "detectionScore": 0.94,
+                        "updated": false
+                    }
+                },
+                "firstFrameTimestamp": 1698078993126,
+                "class": "car",
+                "bestDetectionTimestamp": 1698078993326,
+                "box": {
+                    "height": 352,
+                    "width": 694,
+                    "x": 1,
+                    "y": 101
+                },
+                "detectionScore": 0.94,
+                "updated": true,
+                "links": [
+                    {
+                        "metaClass": "licensePlates",
+                        "id": "rtsp-stream-2-lp-6-1698078858380"
+                    }
+                ]
+            }
+        }
+    },
+    "mediaEvents": [
+        {
+            "type": "image",
+            "msg": "16980/1698078993326.jpg",
+            "format": "jpg",
+            "sequence": 8
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+{
+    "onlyReportLPs" : false,
+    "outputFile" : "/data/log.txt",
+    "jsonOutput" : "/data/all.json",
+    "outputCrops" : "/data/output",
+    "outputFrames" : "/data/outputFrames",
+    "maxTrackDuration" : 3000
+}

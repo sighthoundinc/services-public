@@ -6,7 +6,7 @@ This deployment is comprised of 3 services: a REST gateway, SIO's [Vehicle Analy
 
 This guide contains instructions on how to run the Sighthound Vehicle Analytics REST API using Docker Compose. If you prefer to use your own `docker run` command or other orchestration methods, please refer to the `docker-compose.yml` file for the necessary environment variables, configuration files, and volume mounting examples. More fine-tuning is possible both through docker configuration and SIO parameter modifications.
 
-Contact [support@sighthound.com](mailto:support@sighthound.com) with any questions, and visit our [Developer Portal](https://dev.sighthound.com/cloud-api/docs/quickstart/docker/) for more information.
+Contact [support@sighthound.com](mailto:support@sighthound.com) with any questions, and visit our [Developer Portal](https://dev.sighthound.com) for more information.
 
 
 ## Running the API

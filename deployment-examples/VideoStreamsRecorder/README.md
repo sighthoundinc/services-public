@@ -4,7 +4,7 @@ This sample continues where `VideoStreamConsumer` left off, and adds on media ge
 
 This deployment is comprised of 4 services: SIO's [Vehicle Analytics](https://dev.sighthound.com/sio/pipelines/VehicleAnalytics/), AMQP broker, MCP and an optional RTSP stream provider.
 
-Contact [support@sighthound.com](mailto:support@sighthound.com) with any questions, and visit our [Developer Portal](https://dev.sighthound.com/cloud-api/docs/quickstart/docker/) for more information.
+Contact [support@sighthound.com](mailto:support@sighthound.com) with any questions, and visit our [Developer Portal](https://dev.sighthound.com) for more information.
 
 
 ## Configuration
