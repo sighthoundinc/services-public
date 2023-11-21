@@ -1,0 +1,20 @@
+version: "2"
+
+services:
+  aqueduct-api:
+    build: .
+    restart: unless-stopped
+    volumes:
+      - ../lib:/app/lib
+      - ../../..:/data/sighthound
+      - ./src:/app
+    ports:
+      - "8888:8888"
+    networks:
+      core_sighthound:
+        aliases:
+          - aqueduct-api
+
+networks:
+  core_sighthound:
+    external: true

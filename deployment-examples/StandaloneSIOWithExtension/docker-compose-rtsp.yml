@@ -1,0 +1,43 @@
+version: "2.3"
+services:
+
+  # By default pipelines.json will point to streams served by this container.
+  # If you point to your own cameras or streams, this container has no other
+  # function and can be disabled.
+  live555_svc:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/live555:2.0.4-examples
+    container_name: sample-live555
+    restart: unless-stopped
+    ports:
+      - "8554:554"
+
+
+  analytics:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r231120}${SIO_DOCKER_TAG_VARIANT}
+    restart: unless-stopped
+    environment:
+      # Location where SIO will place generated model engine files
+      - SIO_DATA_DIR=/data/sio-cache
+      # We need this to see output from Python extension module
+      - PYTHONUNBUFFERED=1
+    # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
+    runtime: ${SIO_DOCKER_RUNTIME-runc}
+    volumes:
+      # Read-only shared folder for data exchange with host / other containers.
+      # We'll use it for license, config files, etc.
+      - ./config:/config:ro
+      # Writable shared folder for data exchange with host
+      # We'll use it for storing the generated model files, data exchange folder, etc.
+      - ./data:/data
+    entrypoint:
+      - /sighthound/sio/bin/runPipelineSet
+      # Pipeline configuration file
+      - /config/analytics/pipelines-rtsp.json
+      # License at the path accessible in the container
+      - --license-path=/config/sighthound-license.json
+      # Log level (info, debug, trace)
+      - --log=${SIO_LOG_LEVEL-info}
+    depends_on:
+      # This dependency can be removed with live555 if no longer necessary.
+      - live555_svc
+

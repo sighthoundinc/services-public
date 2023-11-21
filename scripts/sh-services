@@ -9,6 +9,8 @@ SH_BASE="$(realpath "${SCRIPT_PATH}"/../..)"
 export SH_BASE
 SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/../services)"
 export SERVICES_PATH
+EXAMPLES_PATH="$(realpath "${SCRIPT_PATH}"/../examples)"
+export EXAMPLES_PATH
 MEDIA_PATH="${SH_BASE}"/media
 export MEDIA_PATH
 DB_PATH="${SH_BASE}"/db
@@ -62,28 +64,28 @@ check_service_up() {
     local container_ids
     local container_id
     local state
-    
+
     # Get container IDs
     container_ids=$(${DOCKER_COMPOSE} -f "${service_full_path}/docker-compose.yml" ps -a -q)
-    
+
     # Check if there are no containers
     if [ -z "$container_ids" ]; then
         echo "No ${service} containers are found"
         return 1
     fi
-    
+
     # Loop through each container ID
     for container_id in $container_ids; do
         # Get the state of the container
         state=$(docker inspect --format='{{.State.Status}}' "$container_id")
-        
+
         # Check if the state is not 'running'
         if [ "$state" != "running" ]; then
             echo "Container '$container_id; from ${service} is not up"
             return 1
         fi
     done
-    
+
     # If the function reaches this point, all containers are running
     echo "All ${service} containers are up"
     return 0
@@ -206,15 +208,11 @@ EOF
                 SH_NODE=false
             fi
         fi
-        
+
         echo "SH_ARCH=-r${L4TBASE_VERSION}-arm64v8" >>"${SERVICES_PATH}"/conf/0010-arch.env
         echo "SH_MACHINE=${SH_MACHINE}" >>"${SERVICES_PATH}"/conf/0010-arch.env
         echo "SH_NODE=${SH_NODE}" >>"${SERVICES_PATH}"/conf/0010-arch.env
         echo "SH_SERIAL=${SH_SERIAL}" >>"${SERVICES_PATH}"/conf/0010-arch.env
-        # TODO: remove this hardcoded env var
-        if [[ $SH_NODE == "false" ]]; then
-            echo "SIO_ENABLE_NVMPI=0" >>"${SERVICES_PATH}"/conf/0010-arch.env
-        fi
     else
         echo "Unknown architecture: $(uname -m)"
         exit 1
@@ -269,7 +267,7 @@ function set_text_editor() {
             return 0
         fi
         REPLY=
-    done    
+    done
 }
 function remove_comments_and_duplicates() {
     local file=$1
@@ -277,7 +275,7 @@ function remove_comments_and_duplicates() {
     rm "${file}.bkp"
     # This awk command reads the contents of the file specified by the variable 'file' and stores each line in an array 'a'.
     # It then prints the contents of the array in reverse order, removing any duplicate lines based on the first field (before the '=' character) using the 'seen' array.
-    awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }' "${file}" | awk -F= '!seen[$1]++' | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }' > "${file}.tmp" 
+    awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }' "${file}" | awk -F= '!seen[$1]++' | awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }' > "${file}.tmp"
     mv "${file}.tmp" "${file}"
 }
 function show() {
@@ -296,6 +294,21 @@ function config() {
         return
     fi
     "${service_full_path}"/config.sh
+}
+
+function start_example() {
+    local example=$1
+    local example_full_path="${EXAMPLES_PATH}/${example}"
+    if [ ! -f "${example_full_path}/docker-compose.yml" ]; then
+        echo "No docker-compose.yml file found for ${example}"
+        return
+    fi
+    echo "Starting ${example}"
+    cd "${example_full_path}" || exit 1
+    ${DOCKER_COMPOSE} build
+    ${DOCKER_COMPOSE} up -d
+    sleep 1
+    ${DOCKER_COMPOSE} ps
 }
 
 function edit() {
@@ -436,7 +449,7 @@ function create_network() {
 function depends() {
     local service=$1
     local service_full_path="${SERVICES_PATH}/${service}"
-    
+
     # Check if the folder contains the "depends" file
     if [ -f "${service_full_path}/depends" ]; then
         # Read the contents of the "depends" file
@@ -520,6 +533,10 @@ function depends() {
     return 0
 }
 
+function start(){
+    up "$@"
+}
+
 function up() {
     local service=$1
     local service_full_path="${SERVICES_PATH}/${service}"
@@ -548,6 +565,10 @@ function compose_up() {
     echo "Starting ${service}"
     ${DOCKER_COMPOSE} up -d
     cd "${SERVICES_PATH}" || exit 1
+}
+
+function stop () {
+    down "$@"
 }
 
 function down() {
@@ -645,14 +666,26 @@ select_live555_video() {
 
   if [[ $file_path == *.mkv ]]; then
     if [ -f "$file_path" ]; then
-      mkdir -p "${SERVICES_PATH}/live555/test-data"
-      cp "$file_path" "${SERVICES_PATH}/live555/test-data/my-video.mkv"
+      mkdir -p "${MEDIA_PATH}/input/video/live555"
+      cp "$file_path" "${MEDIA_PATH}/input/video/live555/my-video.mkv"
       echo "Selected file: $file_path"
+      ls -la "${MEDIA_PATH}"/input/video/live555/my-video.mkv
+      return 0
     else
-      echo "Invalid file path or file does not exist: $file_path"
+      echo "ERROR: Invalid file path or file does not exist: $file_path"
+      return 1
     fi
   else
-    echo "Invalid file format. Please select an MKV file."
+    if [[ $file_path == "" ]]; then
+      echo "Contents of ${MEDIA_PATH}/input/video/live555:" 
+      find "${MEDIA_PATH}/input/video/live555"
+      echo "No file selected. Skipping...."
+      sleep 3
+      return 0
+    else
+      echo "Invalid file format. Please select a valid MKV file and try again."
+      return 1
+    fi
   fi
 }
 
@@ -753,7 +786,7 @@ function interactively_apply_command() {
                 break
             fi
             interactively_handle_service "$service"
-        else 
+        else
             echo "Invalid option $REPLY"
         fi
         REPLY=
@@ -793,8 +826,11 @@ function apply_to_services() {
         for service in "${SERVICES[@]}"; do
             # Check if service in AVAILABLE_SERVICES
             if element_in_list "${service}" "${AVAILABLE_SERVICES[@]}"; then
-                if [ "${service}" == " " ]; then
+                if [[ "${service}" == " " ]]; then
                     continue
+                fi
+                if [[ ! -f "${SERVICES_PATH}/${service}/.env" ]]; then
+                    merge "${service}"
                 fi
                 # Some commands should not print the service
                 if [ "${COMMAND}" != "status" ] ; then
@@ -825,10 +861,16 @@ function apply() {
         echo "File not found: $filename"
         exit 1
     fi
+    set -e
     while IFS= read -r line || [[ -n "$line" ]]
     do
         echo "- $line"
         $line
+        rt=$?
+        if [ $rt -ne 0 ]; then
+            echo "Error executing command: $line : $rt"
+            exit 1
+        fi
     done < "$filename"
     wait
     echo "Done"
@@ -844,6 +886,7 @@ LIST_OF_COMMANDS="    apply - Apply a configuration file
     edit [service(s)] - Modify configurations or settings of a service
     config [service(s)] - Runs the configuration script of a service if available
     select_example [service(s)] - Select an example configuration for a service. E.g: select_example sio aqueduct
+    start_example [example] - Start an example configuration. E.g: start_example AqueductAPI
     enable [service(s)] - Turn on a service
     disable [service(s)] - Turn off a service
     depends [service(s)] - Show the dependencies of a service and it's status
@@ -857,10 +900,10 @@ LIST_OF_COMMANDS="    apply - Apply a configuration file
 COMMAND=$1
 shift 1 || true
 case $COMMAND in
-"select_example" | "select_live555_video" | "apply" | "test_rtsp_stream")
+"select_example" | "set_example" | "select_live555_video" | "apply" | "test_rtsp_stream" | "start_example")
     "$COMMAND" $@
     ;;
-"merge" | "up" | "down" | "restart" | "enable" | "disable" | "depends" | "edit" | "config" | "show" | "status")
+"merge" | "up" | "start" | "down" | "stop" | "restart" | "enable" | "disable" | "depends" | "edit" | "config" | "show" | "status")
     apply_to_services "$COMMAND" $@
     ;;
 "clean_media" | "clean_logs" | "clean_rabbitmq" | "remove_orphans" | "ps" | "license")

@@ -1,5 +1,14 @@
 # Release Notes
 
+## v1.5.3
+- Add Aqueduct API and UI examples
+- Refine Aqueduct runner example
+- Add fakeRTSP example configuration
+- Update live555
+- Update MCP to 1.3.2
+- Update SIO to r231120
+- Fix samples' compatibility with DNNCam/DNNNode
+- Allow samples to define SIO image version via SIO_RELEASE define
 
 
 ## v1.5.2

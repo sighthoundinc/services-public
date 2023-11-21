@@ -1,0 +1,23 @@
+version: '3.7'
+services:
+  aqueductui:
+    build: .
+    container_name: aqueductui
+    restart: always
+    ports:
+      - "4173:4173"
+    environment:
+      - MCP_HOST=mcp
+      - MCP_PORT=9097
+      - MCP_USERNAME=root
+      - MCP_PASSWORD=root
+    volumes:
+      - ../../..:/data/sighthound
+    networks:
+      core_sighthound:
+        aliases:
+          - aqueductui
+
+networks:
+  core_sighthound:
+    external: true

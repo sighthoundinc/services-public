@@ -28,6 +28,12 @@ If you have an NVIDIA GPU installed and properly configured, you can run the fol
 SIO_DOCKER_RUNTIME=nvidia docker compose up -d
 ```
 
+Or if you have an NVIDIA Tegra device properly configured (e/g DNNcam), you can run the following command instead to enable GPU acceleration:
+
+```bash
+SIO_DOCKER_RUNTIME=nvidia SIO_DOCKER_TAG_VARIANT="-r32.7.3-arm64v8" docker-compose up -d
+```
+
 ## Running the client sample
 
 Once the services are up and running, start the client sample with a `docker compose up` command while inside the relevant sample's folder in `./clients/python/`.

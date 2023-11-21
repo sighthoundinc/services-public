@@ -1,0 +1,26 @@
+{
+    "unifiedEU-US" : {
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "VIDEO_IN"  : "rtsp://live555_svc:554/Turn-02.mkv",
+            "boxFilterConfig" : "/config/analytics/boxFilter-rtsp.json",
+            "detectionModel" : "gen6es",
+            "lptFilter" : "['us']",
+            "mmcFilter" :  "['us']",
+            "lptMinConfidence" : "0.5",
+            "sourceId" : "fw-1",
+            "lptPreferAccuracyToSpeed" : "true",
+            "extensionModules" : "/config/analytics/extension.py",
+            "extensionConfigurations" : "/config/analytics/extensionConfig1.json",
+            "useTracker" : "true",
+            "updateOnlyOnChange" : "true",
+            "lptStabilizationDelay" : "5",
+            "updateOnImprovedScore" : "true",
+            "debugSettings" : "log,json",
+            "lptSkipCarsWithoutLPs" : "true"
+        },
+        "disabledParameters" : {
+        }
+    }
+}

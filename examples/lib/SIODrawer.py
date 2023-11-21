@@ -17,6 +17,7 @@ class SIODrawer:
             self.frame = np.full((self.height, self.width, self.channels), color, np.uint8)
         else:
             self.frame = np.zeros((self.height, self.width, self.channels), np.uint8)
+            self.write_text("No frame", location="center", color=(0, 0, 255), font_scale=2, thickness=3)
 
     def save_frame(self, filename):
         cv2.imwrite(filename, self.frame)
@@ -137,11 +138,13 @@ class SIODrawer:
                     self.last_sequence = event.get("sequence")
                     break
             if image_found:
+                print(f"- Received SIO data with images")
                 try:
                     self.set_current_frame(self.mcp.get_image(source_id, image_found))
                 except Exception as e:
                     print(f"Caught exception {e}")
             else:
+                print(f"- Received SIO data without images")
                 return
             
             self.draw_sio_data(data)

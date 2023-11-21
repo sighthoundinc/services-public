@@ -120,9 +120,9 @@ If you need to test SIO analytics service and don't have an available RTSP sourc
 Next, copy your test video file to the live555 mount path:
 
 ```bash
-mkdir -p "${SH_BASE}"/services/live555/test-data
+mkdir -p "${SH_BASE}"/media/input/video/live555
 # cp or scp
-cp <my-video>  "${SH_BASE}"/services/live555/test-data/my-video.mp4
+cp <my-video>  "${SH_BASE}"/media/input/video/live555/my-video.mp4
 ```
 
 You can also execute this by running:

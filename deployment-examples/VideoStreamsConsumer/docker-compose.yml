@@ -1,11 +1,11 @@
-version: "3"
+version: "2.3"
 services:
 
   # By default pipelines.json will point to streams served by this container.
   # If you point to your own cameras or streams, this container has no other
   # function and can be disabled.
   live555_svc:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/live555:latest
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/live555:2.0.4-examples
     container_name: sample-live555
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
 
   # The SIO analytics container, consuming the streams and analyzing them
   analytics_svc:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:r230908
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r231120}${SIO_DOCKER_TAG_VARIANT}
     container_name: sample-sio
     restart: unless-stopped
     environment:

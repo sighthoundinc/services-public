@@ -1,0 +1,28 @@
+[
+  {
+    "name": "lp_roiFilter",
+    "type" : "roi",
+    "region" : [ 0.5, 0.5, 0.99999, 0.99999 ],
+    "behavior": "boxInRoi",
+    "classes": ["licenseplate"],
+    "debug": false
+  },
+  {
+    "name": "lp_SizeFilter",
+    "type": "size",
+    "subtype": "dimension",
+    "max": 0,
+    "min": 30,
+    "classes": ["licenseplate", "motorbike"],
+    "debug": false
+  },
+  {
+    "name": "vehicle_SizeFilter",
+    "type": "size",
+    "subtype": "dimension",
+    "max": 0,
+    "min": 40,
+    "classes": ["car", "bus", "truck"],
+    "debug": false
+  }
+]

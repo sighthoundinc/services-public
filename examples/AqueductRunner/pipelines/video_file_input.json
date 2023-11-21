@@ -1,0 +1,17 @@
+{
+  "video-file": {
+    "pipeline": "./share/pipelines/TrafficAnalytics/TrafficAnalyticsRTSP.yaml",
+    "parameters": {
+      "VIDEO_IN": "/data/sighthound/media/input/video/my-video.mkv",
+      "sourceId": "video-file",
+      "recordTo": "/data/sighthound/media/output/video/video-file/",
+      "imageSaveDir": "/data/sighthound/media/output/image/video-file/",
+      "amqpHost": "rabbitmq",
+      "amqpPort": "5672",
+      "amqpExchange": "anypipe",
+      "amqpUser": "guest",
+      "amqpPassword": "guest",
+      "amqpErrorOnFailure": "true"
+    }
+  }
+}

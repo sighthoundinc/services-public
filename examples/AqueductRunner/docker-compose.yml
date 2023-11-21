@@ -15,6 +15,7 @@ services:
       - ./src:/usr/src/app
       - ./pipelines:/usr/src/app/pipelines
       - ../lib:/usr/src/app/lib
+      - ../../..:/data/sighthound
     networks:
       core_sighthound:
         aliases:

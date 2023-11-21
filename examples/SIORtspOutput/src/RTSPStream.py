@@ -54,6 +54,7 @@ class SighthoundRtspMediaFactory(GstRtspServer.RTSPMediaFactory):
             self.frame = np.full((self.height, self.width, self.channels), color, np.uint8)
         else:
             self.frame = np.zeros((self.height, self.width, self.channels), np.uint8)
+            self.write_text("No frame", location="center", color=(0, 0, 255), font_scale=2, thickness=3)
     
     def resize_frame(self):
         # It is better to change the resolution of the camera 
