@@ -4,9 +4,9 @@
         "restartPolicy" : "restart",
         "parameters" : {
             "VIDEO_IN" : "rtsp://live555/StreetVideo1.mkv",
-            "sourceId" : "StreetVideo1",
-            "recordTo":"/data/sighthound/media/output/video/StreetVideo1/",
-            "imageSaveDir":"/data/sighthound/media/output/image/StreetVideo1/",
+            "sourceId" : "StreetVideo1-nomedia",
+            "recordTo":"",
+            "imageSaveDir":"",
             "amqpHost":"rabbitmq",
             "amqpPort":"5672",
             "amqpExchange":"anypipe",

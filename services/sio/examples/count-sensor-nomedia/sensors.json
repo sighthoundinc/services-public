@@ -1,0 +1,46 @@
+{
+    "countSensors": [
+      {
+        "id": "15CCEB3C-54D5-420C-B9ED-55DDED300EF9",
+        "name": "Vehicles lateral movement",
+        "classes": [
+          "vehicles"
+        ],
+        "clockwiseName": "going-left",
+        "counterclockwiseName": "going-right",
+        "referencePoint": "center",
+        "sendUpdate": "onChange",
+        "lineCoordinates": [
+          {
+            "x": 0.5,
+            "y": 0.0
+          },
+          {
+            "x": 0.5,
+            "y": 1.0
+          }
+        ]
+      },
+      {
+        "id": "15CCEB3C-54D5-420C-B9ED-55DDED300EF9",
+        "name": "Vehicles vertical movement",
+        "classes": [
+          "vehicles"
+        ],
+        "clockwiseName": "going-down",
+        "counterclockwiseName": "going-up",
+        "referencePoint": "center",
+        "sendUpdate": "onChange",
+        "lineCoordinates": [
+          {
+            "x": 0.0,
+            "y": 0.5
+          },
+          {
+            "x": 1.0,
+            "y": 0.5
+          }
+        ]
+      }
+    ]
+  }

@@ -1,6 +1,12 @@
 # Release Notes
 
-## v1.5.3
+## v1.5.4
+- Add more sio examples and rename them
+- Fix MCPEvents example
+- Update SIO to r231204 that fixes hanging issue
+- sh-services: add rabbitmq check fn
+
+## v1.5.3 
 - Add Aqueduct API and UI examples
 - Refine Aqueduct runner example
 - Add fakeRTSP example configuration
@@ -9,7 +15,6 @@
 - Update SIO to r231120
 - Fix samples' compatibility with DNNCam/DNNNode
 - Allow samples to define SIO image version via SIO_RELEASE define
-
 
 ## v1.5.2
 

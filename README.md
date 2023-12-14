@@ -135,7 +135,7 @@ Enter the path of an MKV file for the example live555 video: <my-video>
 Finally, enable the live555 SIO configuration:
 
 ```bash
-$ ./scripts/sh-services select_example sio live555
+$ ./scripts/sh-services select_example sio file-rtsp
 ```
 
 ### Configure SIO

@@ -11,6 +11,8 @@ SERVICES_PATH="$(realpath "${SCRIPT_PATH}"/../services)"
 export SERVICES_PATH
 EXAMPLES_PATH="$(realpath "${SCRIPT_PATH}"/../examples)"
 export EXAMPLES_PATH
+DEPLOYMENT_EXAMPLES_PATH="$(realpath "${SCRIPT_PATH}"/../deployment-examples)"
+export DEPLOYMENT_EXAMPLES_PATH
 MEDIA_PATH="${SH_BASE}"/media
 export MEDIA_PATH
 DB_PATH="${SH_BASE}"/db
@@ -39,11 +41,8 @@ fi
 test_rtsp_stream() {
     local rtsp_url="$1"
     local timeout_seconds="$2"
-    if ! command -v ffprobe &> /dev/null; then
-        echo "FFmpeg is not installed. Please install FFmpeg first."
-        return 1
-    fi
-    local status_code=$(ffprobe -v quiet -select_streams v:0 -show_entries stream=codec_name -of default=nokey=1:noprint_wrappers=1 -rtsp_transport tcp "$rtsp_url" -timeout "$timeout_seconds" 2>/dev/null)
+
+    local status_code=$(docker run --entrypoint=/usr/local/bin/ffprobe --network=core_sighthound linuxserver/ffmpeg -v quiet -select_streams v:0 -show_entries stream=codec_name -of default=nokey=1:noprint_wrappers=1 -rtsp_transport tcp "$rtsp_url" -timeout "$timeout_seconds" 2>/dev/null)
 
     if [[ -n $status_code ]]; then
         echo "RTSP stream $rtsp_url is up"
@@ -52,6 +51,13 @@ test_rtsp_stream() {
         echo "ERROR: RTSP stream $rtsp_url is down"
         return 1
     fi
+}
+
+check_rabbitmq() {
+    echo "RabbitMQ exchanges:"
+    curl -s -u guest:guest http://localhost:15672/api/exchanges | tr ',' '\n' | tac | grep -E '"name"|publish_in_details|publish_out_details' | sed 's/"name":/- Exchange: /' | sed 's/"publish_in_details":/   Publish in: /' | sed 's/"publish_out_details":/   Publish out: /'
+    echo "RabbitMQ queues:"
+    curl -s -u guest:guest http://localhost:15672/api/queues | tr ',' '\n' | tac | grep -E '"name"|message_bytes_.*' | sed 's/"name":/- Queue: /'
 }
 
 check_endpoint() {
@@ -183,6 +189,15 @@ LICENSE_PATH=${LICENSE_PATH}
 EOF
 }
 
+function get_l4t_version() {
+    L4TBASE_VERSION=32.7.3
+    if command -v bai-osinfo &>/dev/null; then
+        L4TBASE_VERSION=$(bai-osinfo -l)
+        [[ "$L4TBASE_VERSION" == 32.7.* ]] && L4TBASE_VERSION=32.7.3
+    fi
+    echo "$L4TBASE_VERSION"
+}
+
 function save_arch_info() {
     if [ ! -d "${SERVICES_PATH}"/conf ]; then
         mkdir -p "${SERVICES_PATH}"/conf
@@ -196,10 +211,8 @@ EOF
         echo "SH_ARCH=-amd64" >>"${SERVICES_PATH}"/conf/0010-arch.env
         echo "SH_NODE=false" >>"${SERVICES_PATH}"/conf/0010-arch.env
     elif [ "$(uname -m)" == "aarch64" ]; then
-        L4TBASE_VERSION=32.7.3
+        L4TBASE_VERSION=$(get_l4t_version)
         if command -v bai-osinfo &>/dev/null; then
-            L4TBASE_VERSION=$(bai-osinfo -l)
-            [[ "$L4TBASE_VERSION" == 32.7.* ]] && L4TBASE_VERSION=32.7.3
             SH_MACHINE=$(bai-osinfo -m)
             SH_SERIAL=$(bai-osinfo -s)
             if [[ $SH_MACHINE == *"node"* ]]; then
@@ -298,6 +311,11 @@ function config() {
 
 function start_example() {
     local example=$1
+    if [ "$example" == "" ]; then
+        echo "No example specified. Available Options:"
+        find "${EXAMPLES_PATH}"/* -maxdepth 0 -type d -exec basename {} \; | awk '{print "  - "$0}'
+        return
+    fi
     local example_full_path="${EXAMPLES_PATH}/${example}"
     if [ ! -f "${example_full_path}/docker-compose.yml" ]; then
         echo "No docker-compose.yml file found for ${example}"
@@ -307,6 +325,30 @@ function start_example() {
     cd "${example_full_path}" || exit 1
     ${DOCKER_COMPOSE} build
     ${DOCKER_COMPOSE} up -d
+    sleep 1
+    ${DOCKER_COMPOSE} ps
+}
+
+function deploy_example() {
+    local example=$1
+    if [ "$example" == "" ]; then
+        echo "No example specified. Available Options:"
+        find "${DEPLOYMENT_EXAMPLES_PATH}"/* -maxdepth 0 -type d -exec basename {} \;| awk '{print "  - "$0}'
+        return
+    fi
+    local example_full_path="${DEPLOYMENT_EXAMPLES_PATH}/${example}"
+    if [ ! -f "${example_full_path}/docker-compose.yml" ]; then
+        echo "No docker-compose.yml file found for ${example}"
+        return
+    fi
+    echo "Starting ${example}"
+    cd "${example_full_path}" || exit 1
+    if [ "$(uname -m)" == "aarch64" ]; then
+        L4TBASE_VERSION=$(get_l4t_version)
+        SIO_DOCKER_RUNTIME=nvidia SIO_DOCKER_TAG_VARIANT="-r${L4TBASE_VERSION}-arm64v8" ${DOCKER_COMPOSE} up -d
+    else
+        ${DOCKER_COMPOSE} up -d
+    fi
     sleep 1
     ${DOCKER_COMPOSE} ps
 }
@@ -446,6 +488,11 @@ function create_network() {
     fi
 }
 
+function create_default_networks() {
+    create_network "sh-device-ui_sh-ui-net"
+    create_network "core_sighthound"
+}
+
 function depends() {
     local service=$1
     local service_full_path="${SERVICES_PATH}/${service}"
@@ -539,6 +586,7 @@ function start(){
 
 function up() {
     local service=$1
+    local background=$2
     local service_full_path="${SERVICES_PATH}/${service}"
     if [ ! -f "${service_full_path}/docker-compose.yml" ]; then
         echo "Service ${service} not found."
@@ -549,10 +597,20 @@ function up() {
         echo "Skipping ${service} : disabled file found"
         return
     fi
+    if [ "${service}" == "sio" ] && [ ! -f "${service_full_path}/conf/${service}.json" ]; then
+        echo "WARN: sio.json file not found: using the default one from the example"
+        select_example "${service}" "default"
+        echo "${service_full_path}"/conf/"${service}".json
+        return 1
+    fi
     echo "Bringing up ${service}"
     merge "${service}"
-    compose_up "${service}" &
-    sleep 1
+    if [ -n "${background}" ] && [ "${background}" = "true" ]; then
+        compose_up "${service}" &
+        sleep 1
+    else
+        compose_up "${service}"
+    fi    
 }
 
 function compose_up() {
@@ -649,7 +707,7 @@ function license() {
         cat "${LICENSE_PATH}/sighthound-license.json"
     else
         echo "No license file found"
-        read -rep "Do you want to create alicense file: ${LICENSE_PATH}/sighthound-license.json? (y/n)" answer
+        read -rep "Do you want to create a license file: ${LICENSE_PATH}/sighthound-license.json? (y/n)" answer
         if [[ $answer == [yY] ]]; then
             EDITOR=$(set_text_editor)
             ${EDITOR} "${LICENSE_PATH}/sighthound-license.json"
@@ -808,8 +866,7 @@ function apply_to_services() {
         exit 1
     fi
     # Create networks
-    create_network "sh-device-ui_sh-ui-net"
-    create_network "core_sighthound"
+    create_default_networks
 
     # Check all services
     if element_in_list "all" "${SERVICES[@]}"; then
@@ -840,13 +897,18 @@ function apply_to_services() {
                     echo "###############################################"
                     echo "Applying command '${COMMAND}' to ${service}"
                 fi
-                $COMMAND "${service}"
+                # If services is an array of length > 1 then run in background, otherwise send false
+                if [ "${#SERVICES[@]}" -gt 1 ]; then
+                    ${COMMAND} "${service}" "true"
+                else
+                    ${COMMAND} "${service}" "false"
+                fi
             else
                 echo "Unknown service: ${service}"
                 echo "Available services: ${AVAILABLE_SERVICES}"
             fi
         done
-        if [ "${COMMAND}" == "restart" ] || [ "${COMMAND}" == "up" ] || [ "${COMMAND}" == "down" ]; then
+        if [ "${COMMAND}" == "restart" ] || [ "${COMMAND}" == "up" ] ; then
             echo "Waiting for services to finish: ${COMMAND}..."
         fi
         wait
@@ -861,6 +923,11 @@ function apply() {
         echo "File not found: $filename"
         exit 1
     fi
+    # Pre apply commands
+    create_default_networks
+    remove_orphans
+    license
+    # Apply commands
     set -e
     while IFS= read -r line || [[ -n "$line" ]]
     do
@@ -900,13 +967,13 @@ LIST_OF_COMMANDS="    apply - Apply a configuration file
 COMMAND=$1
 shift 1 || true
 case $COMMAND in
-"select_example" | "set_example" | "select_live555_video" | "apply" | "test_rtsp_stream" | "start_example")
+"select_example" | "set_example" | "select_live555_video" | "apply" | "test_rtsp_stream" | "start_example" | "deploy_example" )
     "$COMMAND" $@
     ;;
 "merge" | "up" | "start" | "down" | "stop" | "restart" | "enable" | "disable" | "depends" | "edit" | "config" | "show" | "status")
     apply_to_services "$COMMAND" $@
     ;;
-"clean_media" | "clean_logs" | "clean_rabbitmq" | "remove_orphans" | "ps" | "license")
+"clean_media" | "clean_logs" | "clean_rabbitmq" | "remove_orphans" | "check_rabbitmq"| "ps" | "license")
     "$COMMAND"
     ;;
 "" | "help" | "-h" | "--help")

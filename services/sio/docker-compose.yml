@@ -9,9 +9,11 @@ services:
       - ${LICENSE_PATH}/sighthound-license.json:/sighthound/sio/share/sighthound-license.json:ro
       - ${LICENSE_PATH}/sighthound-license.json:/sighthound/sio/share/license.json:ro
       - ./conf/:/etc/sio/:ro
+      - ./conf/:/sighthound/sio/conf:ro
       - ./conf/plugins/:/lib/sio/plugins/:ro
       - ${MEDIA_PATH}:/data/sighthound/media:rw
       - ${SH_BASE}/.cache:/root/.sio/modelCache
+    # working_dir: /sighthound/sio # This is default
     env_file:
       - .env
     command: sh -c 'eval "/sighthound/sio/bin/${SIO_APP} ${SIO_ENTRYPOINT} --log ${SIO_LOG_LEVEL} ${SIO_EXTRA_ARGS}"'

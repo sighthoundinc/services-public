@@ -59,6 +59,8 @@ class MCPEvents:
             if args.sensors_json:
                 print("Generating events based on sensors.json")
                 self.roi_filter = ROIFilter(args.sensors_json)
+            else:
+                print("Generating events based on all events")
         if args.annotate:
             self.annotator = MCPEventAnnotator(capture_dir = capture_dir,
                                                sensors_json = args.sensors_json)
@@ -99,20 +101,24 @@ class MCPEvents:
             filepath_ts = dirpath / Path(segment.uri)
             filepath_ts.parent.mkdir(parents=True, exist_ok=True)
             video_name = filepath_ts.relative_to(filepath_ts.parent.parent)
+            print(f"Downloading {video_name}")
             self.mcp_client.download_video(source, video_name, filepath_ts)
         vidfile = dirpath / Path(f"{filename_base}.m3u8")
+        print(f"Writing {vidfile}")
         with open(vidfile, "w") as file:
             file.write(m3u8_content)
         json_file = dirpath_json / Path(f"{filename_base}.json")
+        print(f"Writing {json_file}")
         event_segment.write_json(json_file)
         if self.annotator:
             self.annotator.create_annotation(json_file, vidfile)
+        print(f"Event segment complete")
 
     # This method is called when a media event is received from the MCP
     def handle_media_event_callback(self, media_event, sourceId):
         # Get the type and message of the media event
         type = media_event.get("type", "unknown")
-        msg = media_event.get("msg", "unknown")
+        # msg = media_event.get("msg", "unknown")
         # If the media event is a video_file_closed event, add it to the current event segment
         # for the source ID, or to the completed event segments if it's already completed
         if type == "video_file_closed":
@@ -128,14 +134,21 @@ class MCPEvents:
 
 
     def json_callback(self, data):
+        if 'frameTimestamp' not in data or 'sourceId' not in data:
+            print(f"Invalid message received: {data}")
+            return
+
         sourceId = data.get("sourceId", "unknown")
+        frameTimestamp = data.get("frameTimestamp", 0)
         mediaEvents = data.get("mediaEvents", {})
+        
         for event in mediaEvents:
             self.handle_media_event_callback(event, sourceId)
 
+        # Record only sensor events (count, region, etc) and ignore other events
         if self.use_events:
             if 'sensorEvents' in data:
-                start_ts = data['frameTimestamp']
+                start_ts = frameTimestamp
                 # The end timestamp for all active events
                 end_ts = None
                 event_in_progress = False
@@ -150,42 +163,40 @@ class MCPEvents:
                             else:
                                 event_in_progress = True
                 if event_in_progress:
-                    if not data['sourceId'] in self.current_event_seg:
-                        self.current_event_seg[data['sourceId']] = EventSegment(start_ts)
-                elif data['sourceId'] in self.current_event_seg:
-                    current_event_seg = self.current_event_seg[data['sourceId']]
-                    current_event_seg.events_list.append(data)
-                    current_event_seg.end_ts = data['frameTimestamp'] if end_ts is None else end_ts
+                    if not sourceId in self.current_event_seg:
+                        self.current_event_seg[sourceId] = EventSegment(start_ts)
+                elif sourceId in self.current_event_seg:
+                    current_event_seg = self.current_event_seg[sourceId]
+                    current_event_seg.add_event(data)
+                    current_event_seg.end_ts = frameTimestamp if end_ts is None else end_ts
                     if end_ts is not None:
-                        self.new_event_segment(data['sourceId'], current_event_seg)
-                    del self.current_event_seg[data['sourceId']]
-            if data['sourceId'] in self.current_event_seg:
-                self.current_event_seg[data['sourceId']].events_list.append(data)
+                        self.new_event_segment(sourceId, current_event_seg)
+                    del self.current_event_seg[sourceId]
+            if sourceId in self.current_event_seg:
+                self.current_event_seg[sourceId].add_event(data)
         else:
-            if 'frameTimestamp' in data and 'sourceId' in data and \
-                data['sourceId'] in self.current_event_seg:
-                current_event_seg = self.current_event_seg[data['sourceId']]
-                if data['frameTimestamp'] - current_event_seg.start_ts > \
-                        self.group_events_max_length :
+            if sourceId in self.current_event_seg:
+                current_event_seg = self.current_event_seg[sourceId]
+                if frameTimestamp - current_event_seg.start_ts > self.group_events_max_length :
                     print(f"Event length exceeded {self.group_events_max_length} ms, restarting event segment")
-                    self.new_event_segment(data['sourceId'],current_event_seg)
-                    del self.current_event_seg[data['sourceId']]
+                    self.new_event_segment(sourceId,current_event_seg)
+                    del self.current_event_seg[sourceId]
 
-                elif data['frameTimestamp'] - current_event_seg.end_ts > \
-                        self.group_events_separation_ms :
+                elif frameTimestamp - current_event_seg.end_ts > self.group_events_separation_ms :
                     print(f"More than {self.group_events_separation_ms} ms between events, restarting event segment")
-                    print(f"Current frame timestamp is {self.frame_timestamp_to_timestr(data['frameTimestamp'])}"\
+                    print(f"Current frame timestamp is {self.frame_timestamp_to_timestr(frameTimestamp)}"\
                             f" last event timestamp was {self.frame_timestamp_to_timestr(current_event_seg.end_ts)}")
-                    self.new_event_segment(data['sourceId'],current_event_seg)
-                    del self.current_event_seg[data['sourceId']]
+                    self.new_event_segment(sourceId,current_event_seg)
+                    del self.current_event_seg[sourceId]
 
-                if 'metaClasses' in data and 'sourceId' in data:
-                    if not self.roi_filter or self.roi_filter.objects_in_roi(data):
-                        if not data['sourceId'] in self.current_event_seg:
-                            self.current_event_seg[data['sourceId']] = EventSegment(data['frameTimestamp'])
-                        current_event_seg = self.current_event_seg[data['sourceId']]
-                        current_event_seg.events_list.append(data)
-                        current_event_seg.end_ts = data['frameTimestamp']
+            if 'metaClasses' in data:
+                if not self.roi_filter or self.roi_filter.objects_in_roi(data):
+                    if not sourceId in self.current_event_seg:
+                        self.current_event_seg[sourceId] = EventSegment(frameTimestamp)
+                    current_event_seg = self.current_event_seg[sourceId]
+                    current_event_seg.add_event(data)
+                    current_event_seg.end_ts = frameTimestamp
+    
 
     def start(self):
         self.path_prefix.mkdir(parents=True, exist_ok=True)

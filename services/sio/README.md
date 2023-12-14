@@ -37,3 +37,7 @@ cp examples/plugins/* conf
 ../scripts/sh-services up sio
 ```
 
+### Setting SIO sensors
+
+If you need to set count, presence or speed sensors, use one of the following examples:
+- [Count Sensor Example](./examples/count-sensor-nomedia/) `./scripts/sh-services select_example sio count-sensor-nomedia`
