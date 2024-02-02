@@ -1,0 +1,40 @@
+{
+    "rtsp" : {
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "VIDEO_IN"  : "rtsp://live555_svc:554/Turn-01.mkv",
+            "boxFilterConfig" : "/config/analytics/boxFilter.json",
+            "detectionModel" : "gen7es",
+            "lptModel" : "gen7es",
+            "lptFilter" : "['eu', 'us']",
+            "lptMinConfidence" : "0.7",
+            "sourceId" : "rtsp-stream-1",
+            "lptPreferAccuracyToSpeed" : "false",
+            "fpsLimit" : "2",
+            "updateOnlyOnChange" : "false",
+            "splitMakeModel" : "true",
+            "extensionModules" : "/config/analytics/extension.py",
+            "extensionConfigurations" : "/config/analytics/extensionConfig.json"
+        }
+    },
+    "folderWatch" : {
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsFolderWatch.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "boxFilterConfig" : "/config/analytics/boxFilter.json",
+            "detectionModel" : "gen7es",
+            "lptModel" : "gen7es",
+            "lptFilter" : "['eu', 'us']",
+            "lptMinConfidence" : "0.7",
+            "sourceId" : "fw-stream-1",
+            "lptPreferAccuracyToSpeed" : "false",
+            "fpsLimit" : "2",
+            "updateOnlyOnChange" : "false",
+            "folderPath" : "/tmp/runvol/fw",
+            "folderPollInterval" : "100",
+            "folderRemoveSourceFiles" : "true",
+            "splitMakeModel": "true"
+        }
+    }
+}

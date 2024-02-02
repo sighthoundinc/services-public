@@ -1,0 +1,4 @@
+{
+    "prefix" : "rtsp",
+    "outputFolder" : "/tmp/runvol/live"
+}

@@ -1,5 +1,12 @@
 # Release Notes
 
+## v1.5.5
+- Initial version of on-demand analytics sample
+- Sighthound REST API Gateway - Docker Compose Updates
+- Fix MCPEvents logic
+- Update SIO version
+- sh-services: bug fix: ensure folders are created before interacting with them
+
 ## v1.5.4
 - Add more sio examples and rename them
 - Fix MCPEvents example

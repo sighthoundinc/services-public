@@ -141,12 +141,14 @@ function remove_orphans() {
 }
 
 function clean_logs() {
+    mkdir -p ${LOGS_PATH}
     find "${LOGS_PATH:?}" -type f -exec truncate -s 0 {} \;
     echo "Removed all log files"
 }
 
 function clean_media() {
     echo "Cleaning media files"
+    mkdir -p ${MEDIA_PATH} ${DB_PATH}
     du -sh "${MEDIA_PATH:?}"
     # Remove all media files
     find "${MEDIA_PATH:?}" -type f -exec rm -f {} \;
@@ -709,6 +711,7 @@ function license() {
         echo "No license file found"
         read -rep "Do you want to create a license file: ${LICENSE_PATH}/sighthound-license.json? (y/n)" answer
         if [[ $answer == [yY] ]]; then
+            mkdir -p ${LICENSE_PATH}
             EDITOR=$(set_text_editor)
             ${EDITOR} "${LICENSE_PATH}/sighthound-license.json"
         fi

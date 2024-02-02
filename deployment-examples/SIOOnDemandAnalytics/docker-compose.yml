@@ -1,12 +1,24 @@
 version: "3"
 services:
 
+  # By default pipelines.json will point to streams served by this container.
+  # If you point to your own cameras or streams, this container has no other
+  # function and can be disabled.
+  live555_svc:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/live555:2.0.4-examples
+    container_name: sample-live555
+    restart: unless-stopped
+    ports:
+      - "8554:554"
+
+  # The actual analytics container
   analytics:
     image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r240117}${SIO_DOCKER_TAG_VARIANT-}
     restart: unless-stopped
     environment:
       # Location where SIO will place generated model engine files
       - SIO_DATA_DIR=/data/sio-cache
+      - PYTHONUNBUFFERED=1
     # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
     runtime: ${SIO_DOCKER_RUNTIME-runc}
     volumes:
@@ -17,7 +29,7 @@ services:
       # We'll use it for storing the generated model files, data exchange folder, etc.
       - ./data:/data
       # Shared memory-backed folder for data exchange with other containers
-      - run_vol:/tmp/inputFiles
+      - runvol:/tmp/runvol
     entrypoint:
       - /sighthound/sio/bin/runPipelineSet
       # Pipeline configuration file
@@ -26,39 +38,28 @@ services:
       - --license-path=/config/sighthound-license
       # Log level (info, debug, trace)
       - --log=${SIO_LOG_LEVEL-info}
+    # This dependency needs to go away when pointing to an external source
+    depends_on:
+      - live555_svc
 
-  gateway:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/rest-api-gateway:11.1.0
+  # REST API gateway
+  rest-api:
+    build: .
+    container_name: rest-api
     restart: unless-stopped
-    environment:
-      - CLOUDVX_LOG_FILE=/data/logs/cloudvx.log
-      # Log level (error, info, debug)
-      - CLOUDVX_LOG_LEVEL=info
     ports:
-      - "8383:8080"
+      - "8080:8080"
+    environment:
+      - PYTHONUNBUFFERED=1
     volumes:
-      # Overrides default config
-      - ./config/gateway/service.json:/cloudvx/config/local.json:ro
-      # Writable shared folder for data exchange with host
-      - ./data:/data
       # Shared memory-backed folder for data exchange with other containers
-      - run_vol:/tmp/inputFiles
+      - runvol:/tmp/runvol
     depends_on:
       - analytics
 
-  # UI demo avialable at http://localhost:8484
-  # Remove this service in production.
-  ui-demo:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/rest-api-gateway-ui-demo:latest
-    restart: unless-stopped
-    ports:
-      - "8484:80"
-    depends_on:
-      - gateway
-
 # Use tmpfs for data exchange between the two containers
 volumes:
-  run_vol:
+  runvol:
     driver_opts:
       type: tmpfs
       device: tmpfs
