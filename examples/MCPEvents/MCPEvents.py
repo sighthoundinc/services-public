@@ -10,6 +10,7 @@ from MCPEventAnnotator import MCPEventAnnotator
 import datetime
 from pathlib import Path
 import m3u8
+from cachetools import TTLCache
 
 class MCPEvents:
     def get_args(self, args):
@@ -42,6 +43,8 @@ class MCPEvents:
         self.current_event_seg = {}
         # A dict of lists of completed event segments by sourceId, waiting to be written to disk when video is available
         self.completed_event_seg = {}
+        # A dict of TTLCache objects representing media events, which expire automatically when not used.
+        self.video_cache = {}
         # Group events into a single segment when separated
         # by less than this number of milliseconds. Only valid when use_events is not specified.
         self.group_events_separation_ms = 5*1000
@@ -103,6 +106,12 @@ class MCPEvents:
             video_name = filepath_ts.relative_to(filepath_ts.parent.parent)
             print(f"Downloading {video_name}")
             self.mcp_client.download_video(source, video_name, filepath_ts)
+            if source in self.video_cache and str(video_name) in self.video_cache[source]:
+                event_segment.videos.append(self.video_cache[source][str(video_name)])
+            else:
+                print(f"Could not find {video_name} in video cache for {source}")
+
+
         vidfile = dirpath / Path(f"{filename_base}.m3u8")
         print(f"Writing {vidfile}")
         with open(vidfile, "w") as file:
@@ -122,14 +131,16 @@ class MCPEvents:
         # If the media event is a video_file_closed event, add it to the current event segment
         # for the source ID, or to the completed event segments if it's already completed
         if type == "video_file_closed":
-            if sourceId in self.current_event_seg:
-                event_seg = self.current_event_seg[sourceId]
-                event_seg.videos.append(media_event)
+            if not sourceId in self.video_cache:
+                self.video_cache[sourceId] = TTLCache(maxsize=100, ttl=60*2)
+            self.video_cache[sourceId][msg] = media_event
             completed_event_segments = self.completed_event_seg.get(sourceId, [])
             for event_seg in completed_event_segments:
-                event_seg.videos.append(media_event)
-                self.event_segment_complete(sourceId, event_seg)
-                self.completed_event_seg[sourceId].remove(event_seg)
+                try:
+                    self.event_segment_complete(sourceId, event_seg)
+                finally:
+                    # Always complete the event segment, even if we couldn't download vids
+                    self.completed_event_seg[sourceId].remove(event_seg)
 
 
 

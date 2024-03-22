@@ -2,6 +2,7 @@ import requests
 from PIL import Image
 import numpy as np
 from io import BytesIO
+from requests.adapters import HTTPAdapter, Retry
 
 class MCPClient:
     def __init__(self, conf):
@@ -14,12 +15,33 @@ class MCPClient:
         else:
             print(f"Connecting to mcp://{self.host}:{self.port}")
 
-    def get(self, url):
+    # See https://www.peterbe.com/plog/best-practice-with-retries-with-requests
+    def requests_retry_session(
+        retries=2,
+        backoff_factor=0.3,
+        status_forcelist=(500, 502, 504),
+        session=None,):
+
+        session = session or requests.Session()
+        retry = Retry(
+            total=retries,
+            read=retries,
+            connect=retries,
+            backoff_factor=backoff_factor,
+            status_forcelist=status_forcelist,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        session.mount('http://', adapter)
+        session.mount('https://', adapter)
+        return session
+
+    def get(self, url, timeout=5):
         if self.user and self.password:
             auth = (self.user, self.password)
         else:
             auth = None
-        response = requests.get(url, auth=auth)
+        # Retry periodic timeouts, abort any response over 5 seconds
+        response = self.requests_retry_session().get(url, auth=auth, timeout=timeout)
 
         if response.status_code == 401:
                 raise Exception("Unauthorized")
@@ -55,7 +77,7 @@ class MCPClient:
     # curl mcp:9097/hlsfs/source/<source_id>/segment/<video>
     def download_video(self, source_id, video, filepath):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/segment/{video}"
-        response = self.get(url)
+        response = self.get(url, timeout=5*60)
 
         if response.status_code != 200:
             if response.status_code == 404:
@@ -70,7 +92,7 @@ class MCPClient:
     # curl mcp:9097/hlsfs/source/<source_id>/segment/<segment>
     def get_segment(self, source_id, segment):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/segment/{segment}"
-        response = self.get(url)
+        response = self.get(url, timeout=5*60)
 
         if response.status_code != 200:
             if response.status_code == 404:
@@ -149,7 +171,7 @@ class MCPClient:
                 raise Exception("Error downloading HLS:", url, ":", response.status_code)
         else:
             return response.text
-        
+
     # curl mcp:9097/hlsfs/source/<source_id>/<start>..<end>.m3u8
     def get_m3u8_playlist(self, source_id, start, end):
         import m3u8

@@ -2,11 +2,11 @@ version: "2.3"
 services:
 
   analytics:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r231204}${SIO_DOCKER_TAG_VARIANT}
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r240318}${SIO_DOCKER_TAG_VARIANT}
     restart: unless-stopped
     environment:
       # Location where SIO will place generated model engine files
-      - SIO_DATA_DIR=/data/sio-cache
+      - SIO_DATA_DIR=/data/.sio
       # We need this to see output from Python extension module
       - PYTHONUNBUFFERED=1
     # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
@@ -17,7 +17,7 @@ services:
       - ./config:/config:ro
       # Writable shared folder for data exchange with host
       # We'll use it for storing the generated model files, data exchange folder, etc.
-      - ./data:/data
+      - ${HOME-./data}:/data
     entrypoint:
       - /sighthound/sio/bin/runPipelineSet
       # Pipeline configuration file

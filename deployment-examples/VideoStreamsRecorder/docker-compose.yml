@@ -38,11 +38,11 @@ services:
     mem_reservation: 512M
     volumes:
       # Location of recorded media; should match that specified for SIO's pipeline configuration
-      - ./data/media:/data/sighthound/media:rw
+      - ${HOME-./data}/media:/data/sighthound/media:rw
       # Location for MCP logs
-      - ./data/logs/mcp:/data/sighthound/logs/mcp:rw
+      - ${HOME-./data}/logs/mcp:/data/sighthound/logs/mcp:rw
       # Location of MCP database
-      - ./data/mcp/db:/data/sighthound/db:rw
+      - ${HOME-./data}/mcp/db:/data/sighthound/db:rw
       # MCP configuration
       - ./config/mcp/mcp.yml:/etc/mcpd/default.json:ro
     ports:
@@ -52,12 +52,12 @@ services:
 
   # The SIO analytics container, consuming the streams and analyzing them
   analytics_svc:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r231204}${SIO_DOCKER_TAG_VARIANT}
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r240318}${SIO_DOCKER_TAG_VARIANT}
     container_name: sample-sio
     restart: unless-stopped
     environment:
       # Location where SIO will place generated model engine files
-      - SIO_DATA_DIR=/data/sio-cache
+      - SIO_DATA_DIR=/data/.sio
     # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
     runtime: ${SIO_DOCKER_RUNTIME-runc}
     volumes:
@@ -66,7 +66,7 @@ services:
       - ./config:/config:ro
       # Writable shared folder for data exchange with host / other containers.
       # We'll use it for storing the generated model files, data exchange folder, etc.
-      - ./data:/data
+      - ${HOME-./data}:/data
     entrypoint:
       - /sighthound/sio/bin/runPipelineSet
       # Pipeline configuration file
