@@ -252,7 +252,7 @@ function merge() {
     local service=$1
     local service_full_path="${SERVICES_PATH}/${service}"
     touch "${service_full_path}/.env"
-    env_files_to_merge="${service_full_path}/.env"
+    env_files_to_merge=""
 
     # Check for .env files
     mkdir -p "${service_full_path}"/conf
@@ -377,22 +377,36 @@ function edit() {
     touch "${service_full_path}/conf/0001-edit.env"
     # Remove comments and duplicates from the edit file
     remove_comments_and_duplicates "${service_full_path}/conf/0001-edit.env"
+    # Add Header
+    cat <<EOF >"${service_full_path}/conf/0001-edit.env.tmp" 
+# ATTENTION
+#
+# You are editing the ${service}/conf/0001-edit.env file
+# In this file, you will find the uncommented lines corresponding to the current changes
+# And below you will find commented lines corresponding to the current variables set on the .env file
+#
+# After you close this file, your changes will be stored at: "${service_full_path}/.env"
+#
+# Current changes:
+EOF
+    cat "${service_full_path}/conf/0001-edit.env" >> "${service_full_path}/conf/0001-edit.env.tmp"
+    mv "${service_full_path}/conf/0001-edit.env.tmp" "${service_full_path}/conf/0001-edit.env"
     # Add the .env as commented lines to the edit
+    cat <<EOF >>"${service_full_path}/conf/0001-edit.env"
+
+# Uncomment any of these lines to apply:
+
+EOF
+    remove_comments_and_duplicates "${service_full_path}/.env"
     sed 's/^/# /' "${service_full_path}/.env" >>"${service_full_path}/conf/0001-edit.env"
     # Edit the edit file
     EDITOR=$(set_text_editor)
     if [ $? != 0 ]; then
         echo "Invalid editor selected: $EDITOR"
     fi
-    read -rep "Do you want to edit the Docker Compose main configuration: ${service}/conf/0001-edit.env (will be merged into ${service}/.env)? (y/n)" answer
-            if [[ $answer == [yY] ]]; then
-                set -e
-                $EDITOR "${service_full_path}/conf/0001-edit.env"
-                set +e
-                echo -e "Contents from ${service_full_path}/conf/0001-edit.env were merged with the default values, the outcome is stored at ${service_full_path}/.env (used by docker-compose)\n"
-            else
-                echo "Skipping edit\n"
-            fi
+    set -e
+    $EDITOR "${service_full_path}/conf/0001-edit.env"
+    set +e
     merge "${service}" > /dev/null
     # Look for files ending in json or yml in conf
     for file in "${service_full_path}"/conf/*.{json,yml}; do

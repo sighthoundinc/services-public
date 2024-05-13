@@ -1,11 +1,19 @@
 # Release Notes
 
+## v1.5.7
+
+- Update MCP to 1.4.2: fixes database locked error
+- deployment-examples: change data path
+- sh-services script improvements
+
 ## v1.5.6
+
 - Update SIO to r240318
 - Update .env editing for better understanding (add banners and more)
 - Remove SIO images when disk is full
   
 ## v1.5.5
+
 - Initial version of on-demand analytics sample
 - Sighthound REST API Gateway - Docker Compose Updates
 - Fix MCPEvents logic
@@ -13,12 +21,14 @@
 - sh-services: bug fix: ensure folders are created before interacting with them
 
 ## v1.5.4
+
 - Add more sio examples and rename them
 - Fix MCPEvents example
 - Update SIO to r231204 that fixes hanging issue
 - sh-services: add rabbitmq check fn
 
 ## v1.5.3 
+
 - Add Aqueduct API and UI examples
 - Refine Aqueduct runner example
 - Add fakeRTSP example configuration

@@ -10,6 +10,10 @@ services:
     restart: unless-stopped
     ports:
       - "8554:554"
+    volumes:
+      # A local folder we can drop videos into and have those references via RTSP URI
+      # Keep in mind, the videos need to be H264 MKV to be properly served by the server
+      - ${DEMO_VIDEO-./videos}:/mnt/data
 
   # AMQP broker to receive analytics data
   rabbitmq_svc:
