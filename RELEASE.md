@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.8
+
+- Update MCP to 1.4.3: fixes lost sequences error
+
 ## v1.5.7
 
 - Update MCP to 1.4.2: fixes database locked error
