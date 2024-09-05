@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.9
+
+- Update SIO to r240809
+
 ## v1.5.8
 
 - Update MCP to 1.4.3: fixes lost sequences error
