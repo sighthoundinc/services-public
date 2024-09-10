@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.10
+
+- Update SIO to r240909
+
 ## v1.5.9
 
 - Update SIO to r240809
@@ -19,7 +23,7 @@
 - Update SIO to r240318
 - Update .env editing for better understanding (add banners and more)
 - Remove SIO images when disk is full
-  
+
 ## v1.5.5
 
 - Initial version of on-demand analytics sample
@@ -35,7 +39,7 @@
 - Update SIO to r231204 that fixes hanging issue
 - sh-services: add rabbitmq check fn
 
-## v1.5.3 
+## v1.5.3
 
 - Add Aqueduct API and UI examples
 - Refine Aqueduct runner example

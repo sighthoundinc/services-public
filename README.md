@@ -66,7 +66,7 @@ Next, you have two options to get the Sighthound services either clone the repo 
 Option 1: Clone the repo:
 
 ```bash
-# 
+#
 git clone git@github.com:sighthoundinc/services.git
 cd services
 # Optionally: checkout the latest release
@@ -129,7 +129,7 @@ You can also execute this by running:
 
 ```bash
 $ ./scripts/sh-services select_live555_video
-Enter the path of an MKV file for the example live555 video: <my-video> 
+Enter the path of an MKV file for the example live555 video: <my-video>
 ```
 
 Finally, enable the live555 SIO configuration:
@@ -139,7 +139,7 @@ $ ./scripts/sh-services select_example sio file-rtsp
 ```
 
 ### Configure SIO
-Requirement: 
+Requirement:
 - jq installed
 
 ```bash
@@ -254,7 +254,7 @@ The `.env` [file](https://docs.docker.com/compose/environment-variables/set-envi
 
 ```bash
 echo "MY_VARIABLE=24" >  sio/conf/user.env
-echo "SIO_DOCKER_TAG=r240809" >  sio/conf/0009-debug.env
+echo "SIO_DOCKER_TAG=r240909" >  sio/conf/0009-debug.env
 ```
 
 And then update the services (create the .env file for docker-compose) by running:
@@ -270,7 +270,7 @@ In the instance you need to change the release version of SIO.
 Execute `./scripts/sh-services edit sio`, then select `Edit service (.env)`, find the variable `SIO_DOCKER_TAG` and finally set it to whatever value you need and then save the file.
 
 That would create a `sio/conf/0001-edit.env` file containing your edits while keeping the `sio/conf/default.env` intact.
-The result would be stored in `sio/.env` file with the merged contents of `default.env` and `0001-edit.env`. 
+The result would be stored in `sio/.env` file with the merged contents of `default.env` and `0001-edit.env`.
 Being `0001-edit.env` of higher ranking than the default file. The order is defined by UNIX, being the character `0` of `0001-edit.env` first than the `d` of `default`.
 
 
