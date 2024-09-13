@@ -1,0 +1,25 @@
+amqp:
+  enable: true
+  host: rabbitmq_svc
+  username: guest
+  password: guest
+  maxLengthSize: 100Mb
+backend:
+  host: 0.0.0.0
+  port: 9097
+sqlite:
+  enable: true
+  path: /data/sighthound/db/sqlite.db
+  auditLogFile: /data/sighthound/logs/mcp/sqlite.log
+  auditMaxMb: 100
+media:
+  path: /data/sighthound/media
+cleaner:
+  enable: true
+  maxDiskUtilization: 90
+  maxMediaSize: 500 MB
+  auditLogFile: /data/sighthound/logs/mcp/cleaner.log
+  auditMaxMb: 100
+logs:
+  level: info
+  format: human-readable

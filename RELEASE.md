@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.11
+
+- Add ALPRDemo to deployment-examples
+
 ## v1.5.10
 
 - Update SIO to r240909

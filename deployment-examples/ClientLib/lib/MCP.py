@@ -37,7 +37,7 @@ class MCPClient:
         return self.get(url).json()
 
     # curl mcp:9097/hlsfs/source/<source_id>/image/<image>
-    def get_image(self, source_id, image):
+    def get_image(self, source_id, image, format="numpy"):
         url = f"http://{self.host}:{self.port}/hlsfs/source/{source_id}/image/{image}"
         response = self.get(url)
 
@@ -48,6 +48,8 @@ class MCPClient:
                 raise Exception("Error downloading image", response.status_code)
         else:
             # Convert image to numpy array
+            if format == "source":
+                return response.content
             img = Image.open(BytesIO(response.content))
             arr = np.array(img)
             return arr
@@ -149,7 +151,7 @@ class MCPClient:
                 raise Exception("Error downloading HLS:", url, ":", response.status_code)
         else:
             return response.text
-        
+
     # curl mcp:9097/hlsfs/source/<source_id>/<start>..<end>.m3u8
     def get_m3u8_playlist(self, source_id, start, end):
         import m3u8

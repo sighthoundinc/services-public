@@ -1,0 +1,159 @@
+version: "3"
+services:
+
+  # ========================= RTSP Server providing demo videos =========================
+  # By default pipelines.json will point to streams served by this container.
+  # If you point to your own cameras or streams, this container has no other
+  # function and can be disabled.
+  live555_svc:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/live555:2.0.4-examples
+    container_name: sample-live555
+    restart: unless-stopped
+    ports:
+      - "8554:554"
+    volumes:
+      # A local folder we can drop videos into and have those references via RTSP URI
+      # Keep in mind, the videos need to be H264 MKV to be properly served by the server
+      - ${DEMO_VIDEO-./videos}:/mnt/data
+    networks:
+      core_sighthound:
+        aliases:
+          - live555_svc
+
+
+  # ========================= SIO ALPR Analytics =========================
+  analytics_svc:
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r240909}${SIO_DOCKER_TAG_VARIANT}
+    restart: unless-stopped
+    environment:
+      # Location where SIO will place generated model engine files
+      - SIO_DATA_DIR=/data/.sio
+      # We need this to see output from Python extension module
+      - PYTHONUNBUFFERED=1
+    # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
+    runtime: ${SIO_DOCKER_RUNTIME-runc}
+    volumes:
+      # Read-only shared folder for data exchange with host / other containers.
+      # We'll use it for license, config files, etc.
+      - ./config:/config:ro
+      # Writable shared folder for data exchange with host
+      # We'll use it for storing the generated model files, data exchange folder, etc.
+      - ${HOME-./data}/alprdemo:/data
+    entrypoint:
+      - /sighthound/sio/bin/runPipelineSet
+      # Pipeline configuration file
+      - /config/sio-pipelines.json
+      # License at the path accessible in the container
+      - --license-path=/config/sighthound-license.json
+      # Log level (info, debug, trace)
+      - --log=${SIO_LOG_LEVEL-info}
+    depends_on:
+      # This dependency can be removed with live555 if no longer necessary.
+      - live555_svc
+      # This dependency can be removed if the aggregation component is changed to an external broker
+      - rabbitmq_svc
+      # We'd want the consumer of the media be up before it's being generated
+      - mcp_svc
+    networks:
+      core_sighthound:
+        aliases:
+          - analytics_svc
+
+
+  # ========================= AMQP Broker =========================
+  rabbitmq_svc:
+    container_name: rabbitmq_svc
+    image: docker.io/rabbitmq:3.8-management
+    hostname: rabbitmq_svc
+    restart: unless-stopped
+    volumes:
+      - ./config/rabbitmq-definitions.json:/etc/rabbitmq/definitions.json
+      - ./config/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - rabbitmq_persistent_storage:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 3s
+      timeout: 30s
+      retries: 3
+    networks:
+      core_sighthound:
+        aliases:
+          - rabbitmq_svc
+
+
+  # ========================= Media Control Point =========================
+  mcp_svc:
+    container_name: mcp_svc
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/mcp:${MCP_DOCKER_TAG-1.4.3}
+    restart: unless-stopped
+    mem_limit: 1G
+    mem_reservation: 512M
+    volumes:
+      - ${HOME-./data}/alprdemo/media:/data/sighthound/media:rw
+      - ${HOME-./data}/alprdemo/logs/mcp:/data/sighthound/logs/mcp:rw
+      - ${HOME-./data}/alprdemo/mcpdb:/data/sighthound/db:rw
+      - ./config/mcp.yml:/etc/mcpd/default.json:ro
+    ports:
+      - "9097:9097"
+    depends_on:
+      # This dependency can be removed if the aggregation component is changed to an external broker
+      - rabbitmq_svc
+    networks:
+      core_sighthound:
+        aliases:
+          - mcp_svc
+
+  # ========================= Data Consumer and Persistence =========================
+  dbclient_svc:
+    build:
+      context: consumer
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    volumes:
+      - ../ClientLib/lib:/usr/src/app/lib:ro
+      - ./common:/usr/src/app/common:ro
+      - ${HOME-./data}/alprdemo/alprdb:/data/sighthound/db:rw
+    depends_on:
+      # This dependency can be removed with live555 if no longer necessary.
+      - live555_svc
+      # This dependency can be removed if the aggregation component is changed to an external broker
+      - rabbitmq_svc
+      # We'd want the consumer of the media be up before it's being generated
+      - mcp_svc
+    networks:
+      core_sighthound:
+        aliases:
+          - dbclient_svc
+
+  # ========================= REST API ===============================================
+  rest_svc:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - REST_PORT=8888
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../ClientLib/lib:/usr/src/app/lib:ro
+      - ./common:/usr/src/app/common:ro
+      - ${HOME-./data}/alprdemo/alprdb:/data/sighthound/db:rw
+      - ${HOME-./data}/alprdemo/folder-watch-input:/data/folder-watch-input:rw
+    depends_on:
+      # We'd want the consumer of the media be up before it's being generated
+      - mcp_svc
+    networks:
+      - core_sighthound
+
+# ========================= Common components Broker =========================
+networks:
+  core_sighthound:
+    external: false
+    driver: bridge
+
+volumes:
+  rabbitmq_persistent_storage:
