@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.12
+
+- ALPRDemo increase docker compose compatibility
+
 ## v1.5.11
 
 - Add ALPRDemo to deployment-examples
