@@ -40,7 +40,7 @@ Contact [support@sighthound.com](mailto:support@sighthound.com) with any questio
     * Source for it is in `./ui/python`
     * Can (and perhaps should) be ran remotely relatively to the docker-compose.
     * Make sure to install requirements with `pip3 install -r ./ui/python/requirements.txt`
-    * Then run with `cd ./ui/python && python3 ALPRDemo.py`
+    * Then run with `cd ./ui/python && python3 ALPRUI.py`
 
 ## General
 
@@ -59,4 +59,14 @@ If you have an NVIDIA GPU installed and properly configured, you can run the fol
 SIO_DOCKER_RUNTIME=nvidia docker compose up -d
 ```
 
+## OS Compatibility
+
+`SIO_DOCKER_TAG_VARIANT` environment variable used in `docker-compose` controls the flavor of SIO analytics container image. While on x86 systems thing largely work without setting it, on Jetson-based system, set it to the value most compatible with your base OS.
+
+* `-r32.4.3-arm64v8` (built for hardware running Jetpack 4.4)
+* `-r32.7.3-arm64v8` (built for hardware running Jetpack 4.6)
+* `-r35.3.1-arm64v8` (work in progress, built for hardware running Jetpack 5.1)
+* `-amd64` for x86 based systems
+
+This variable may already be pre-set in more recent releases of ShOS / on Sighthound devices.
 

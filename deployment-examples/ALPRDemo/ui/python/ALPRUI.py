@@ -14,6 +14,8 @@ import cv2
 from datetime import datetime
 from SIOParser import SIOParser
 
+kDefaultTimeout = 5
+
 def epoch_to_offset(epoch_timestamp):
     return datetime.utcfromtimestamp(epoch_timestamp/1000).strftime('%H:%M:%S')
 
@@ -74,6 +76,7 @@ class SettingsDialog(wx.Dialog):
             self.settings["api_port"] = self.port_text.GetValue()
             self.settings["refresh_rate"] = int(self.refresh_rate_text.GetValue())
             self.settings["max_entries"] = int(self.max_entries_text.GetValue())
+            self.settings["timeout"] = kDefaultTimeout
             self.EndModal(wx.ID_OK)
         except ValueError:
             wx.MessageBox("Please enter valid values for all fields.", "Error", wx.OK | wx.ICON_ERROR)
@@ -90,10 +93,12 @@ class MainFrame(wx.Frame):
             "api_ip": "10.10.10.20",
             "api_port": "8888",
             "refresh_rate": 10,
-            "max_entries": 50
+            "max_entries": 50,
+            "timeout": 10,
         }
 
         self.data = None
+        self.updating = False
 
         self.initUI()
         self.Center()
@@ -212,7 +217,7 @@ class MainFrame(wx.Frame):
                     files = {'file': (os.path.basename(filepath), f)}
                     uri = f"{self.apiRoot()}/folderwatch/upload/us"
 
-                    response = requests.post(uri, files=files)
+                    response = requests.post(uri, files=files, timeout=self.settings['timeout'])
 
                     # Check response status
                     if response.status_code != 200:
@@ -228,10 +233,24 @@ class MainFrame(wx.Frame):
                     self.uploaded_files_list.InsertItem(idx, filepath)
                     self.uploaded_files_list.SetItem(idx, 1, id)
                     self.uploaded_files_list.SetItem(idx, 2, "Uploaded")
-
+            except requests.exceptions.ConnectionError:
+                self.handleTimeout()
+            except requests.Timeout:
+                self.handleTimeout()
             except Exception as e:
                 wx.MessageBox(f"An error occurred: {str(e)}", "Error", wx.OK | wx.ICON_ERROR)
 
+    # =========================================================================
+    def handleTimeout(self):
+        result = wx.MessageBox(f"Timeout reached communicating to {self.settings['api_ip']}. Do you want to modify settings?", "Update settings?", wx.YES_NO | wx.ICON_QUESTION)
+
+        # Check the response
+        if result == wx.YES:
+            shouldStart = self.auto_refresh
+            self.stopAutoRefresh()
+            self.onSettings(None)
+            if shouldStart:
+                self.startAutoRefresh()
 
     # =========================================================================
     def onTabChanged(self,event):
@@ -401,10 +420,14 @@ class MainFrame(wx.Frame):
 
         uri = f"{self.apiRoot()}/plates/image/{src}"
         try:
-            response = requests.get(uri,params={'id':id})
+            response = requests.get(uri, params={'id':id}, timeout=self.settings['timeout'])
             if response.status_code != 200:
                 raise Exception(f"Error {response.status_code} retrieving latest results from {uri}")
             self.updateImage(response.content, response.headers['Content-Type'], box)
+        except requests.exceptions.ConnectionError:
+            self.handleTimeout()
+        except requests.Timeout:
+            self.handleTimeout()
         except Exception as e:
             print(f"Error updating image contents: {e}")
             self.clearImage(self.image_ctrl)
@@ -469,6 +492,9 @@ class MainFrame(wx.Frame):
 
     # =========================================================================
     def updateFileTab(self):
+        if self.updating:
+            return
+        self.updating = True
         item_count = self.uploaded_files_list.GetItemCount()
         for i in range(item_count):
             item_file = self.uploaded_files_list.GetItemText(i)
@@ -484,10 +510,17 @@ class MainFrame(wx.Frame):
 
             uri = f"{self.apiRoot()}/folderwatch/status/{item_id}"
 
-            response = requests.get(uri)
+            try:
+                response = requests.get(uri, timeout=self.settings['timeout'])
+            except requests.exceptions.ConnectionError:
+                self.handleTimeout()
+            except requests.Timeout:
+                self.handleTimeout()
+                response = None
+
 
             # Check response status
-            if response.status_code != 200:
+            if not response or response.status_code != 200:
                 self.uploaded_files_list.SetItem(i,2,"error")
                 continue
 
@@ -498,19 +531,29 @@ class MainFrame(wx.Frame):
             if status == "completed":
                 result = j.get("result","")
                 self.uploaded_files_results[item_file] = result
+        self.updating = False
+
 
 
     # =========================================================================
     def updateCurrentTab(self):
+        if self.updating:
+            return
+        self.updating = True
         try:
-            response = requests.get(f"{self.apiRoot()}/plates/latest/{self.settings['max_entries']}")
+            response = requests.get(f"{self.apiRoot()}/plates/latest/{self.settings['max_entries']}",
+                                    timeout=self.settings['timeout'])
             if response.status_code != 200:
                 raise Exception(f"Error {response.status_code} retrieving latest results")
-                return
             self.data = response.json()
             self.populateListWithData(self.data, self.list_box, False)
+        except requests.exceptions.ConnectionError:
+            self.handleTimeout()
+        except requests.Timeout:
+            self.handleTimeout()
         except Exception as e:
             print(f"Error updating current tab: {e}")
+        self.updating = False
 
     # =========================================================================
     def onRefreshCurrent(self, event):
@@ -557,11 +600,15 @@ class MainFrame(wx.Frame):
         if end:
             uri = uri + f"/{end}"
         try:
-            response = requests.get(uri, params=params)
+            response = requests.get(uri, params=params, timeout=self.settings['timeout'])
             if response.status_code != 200:
                 raise Exception(f"Error {response.status_code} retrieving search results")
             self.data = response.json()
             self.populateListWithData(self.data, self.list_box, False)
+        except requests.exceptions.ConnectionError:
+            self.handleTimeout()
+        except requests.Timeout:
+            self.handleTimeout()
         except Exception as e:
             wx.MessageBox(f"Error updating search tab: {e}", "Error", wx.OK | wx.ICON_ERROR)
 

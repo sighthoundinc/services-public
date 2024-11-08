@@ -16,3 +16,13 @@ REST API Flask module is bringing it all together, providing a front-end impleme
 
 A sample client is implemented in `SIOOnDemandAnalytics/clients/OnDemandTest.py`.
 The client can be ran using `python3 ./clients/OnDemandTest.py [-i inputImage] [-o outputFolder]`
+
+## OS Compatibility
+
+`SIO_DOCKER_TAG_VARIANT` environment variable used in `docker-compose` controls the flavor of SIO analytics container image. While on x86 systems thing largely work without setting it, on Jetson-based system, set it to the value most compatible with your base OS.
+
+* `-r32.4.3-arm64v8` (built for hardware running Jetpack 4.4)
+* `-r32.7.3-arm64v8` (built for hardware running Jetpack 4.6)
+* `-r35.3.1-arm64v8` (work in progress, built for hardware running Jetpack 5.1)
+* `-amd64` for x86 based systems
+

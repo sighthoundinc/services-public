@@ -30,6 +30,23 @@ services:
       - SIO_DATA_DIR=/data/.sio
       # We need this to see output from Python extension module
       - PYTHONUNBUFFERED=1
+      # Way to force specific inference runtime on platforms supporting more than one.
+      # D3V for OpenVino, D3T for TensorRT, D3F for TFLite
+      # - SIO_INFERENCE_RUNTIME=D3V
+      # Detection mode for platforms and engines supporting more than one: 16 for fp16, 8 for int8
+      #   TensorRT and OpenVino only.
+      # - SIO_INFERENCE_MODE=16
+      # Timeout (ms) at which inference will be executed, even if the batch isn't full.
+      # Longer values increase delays, but decrease GPU load.
+      #   TensorRT only.
+      # - SIO_INFERENCE_MAX_INTERBATCH_DELAY=40
+      # Disabling NPP can be useful on systems, where GPU is overloaded (and thus should be preserved for inference),
+      # and a lot of CPU resources are available. Use with care.
+      #   NVidia platforms only.
+      # - SIO_NPP_ENABLE=1
+      # Configured inference batch size. Changing this value will result in re-creating CUDA engine for all the models.
+      #   TensorRT only
+      # - SIO_TENSORRT_RUNTIME_BATCH=16
     # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
     runtime: ${SIO_DOCKER_RUNTIME-runc}
     volumes:

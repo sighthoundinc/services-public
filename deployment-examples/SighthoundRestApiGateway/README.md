@@ -34,3 +34,14 @@ We recommend using the UI Demo for development purposes only, and it should be r
 ## Request and Response
 
 See the [online documentation](https://dev.sighthound.com/cloud-api/docs/quickstart/docker/#request-format) for details on the request/response formats and code samples.
+
+## OS Compatibility
+
+`SIO_DOCKER_TAG_VARIANT` environment variable used in `docker-compose` controls the flavor of SIO analytics container image. While on x86 systems thing largely work without setting it, on Jetson-based system, set it to the value most compatible with your base OS.
+
+* `-r32.4.3-arm64v8` (built for hardware running Jetpack 4.4)
+* `-r32.7.3-arm64v8` (built for hardware running Jetpack 4.6)
+* `-r35.3.1-arm64v8` (work in progress, built for hardware running Jetpack 5.1)
+* `-amd64` for x86 based systems
+
+This variable may already be pre-set in more recent releases of ShOS / on Sighthound devices.

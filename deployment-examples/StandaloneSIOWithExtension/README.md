@@ -43,3 +43,13 @@ camera deployed in such non-deterministic way - thus assuming that monitoring th
 ensures we're not going to analyze objects outside of the bottom right quadrant ROI (`lp_roiFilter` accomplishes that), and won't analyze objects below size threshold (`vehicle_SizeFilter`
 and `lp_SizeFilter` filters accomplish that).
 
+
+## OS Compatibility
+
+`SIO_DOCKER_TAG_VARIANT` environment variable used in `docker-compose` controls the flavor of SIO analytics container image. While on x86 systems thing largely work without setting it, on Jetson-based system, set it to the value most compatible with your base OS.
+
+* `-r32.4.3-arm64v8` (built for hardware running Jetpack 4.4)
+* `-r32.7.3-arm64v8` (built for hardware running Jetpack 4.6)
+* `-r35.3.1-arm64v8` (work in progress, built for hardware running Jetpack 5.1)
+* `-amd64` for x86 based systems
+

@@ -1,5 +1,9 @@
 # Release Notes
 
+## v1.5.13
+
+- ALPRDemo: improve UI experience, fix README typos
+
 ## v1.5.12
 
 - ALPRDemo increase docker compose compatibility

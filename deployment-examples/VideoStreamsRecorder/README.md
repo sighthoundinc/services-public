@@ -39,3 +39,15 @@ SIO_DOCKER_RUNTIME=nvidia SIO_DOCKER_TAG_VARIANT="-r32.7.3-arm64v8" docker-compo
 
 Once the services are up and running, start the client sample with a `docker compose up` command while inside the relevant sample's folder in `./clients/python/`
 
+
+## OS Compatibility
+
+`SIO_DOCKER_TAG_VARIANT` environment variable used in `docker-compose` controls the flavor of SIO analytics container image. While on x86 systems thing largely work without setting it, on Jetson-based system, set it to the value most compatible with your base OS.
+
+* `-r32.4.3-arm64v8` (built for hardware running Jetpack 4.4)
+* `-r32.7.3-arm64v8` (built for hardware running Jetpack 4.6)
+* `-r35.3.1-arm64v8` (work in progress, built for hardware running Jetpack 5.1)
+* `-amd64` for x86 based systems
+
+This variable may already be pre-set in more recent releases of ShOS / on Sighthound devices.
+
