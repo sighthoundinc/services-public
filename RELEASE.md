@@ -1,5 +1,11 @@
 # Release Notes
 
+
+## v1.5.14
+
+- Update SIO to r241014
+- Add comments to config of StandaloneSIOWithExtension
+
 ## v1.5.13
 
 - ALPRDemo: improve UI experience, fix README typos

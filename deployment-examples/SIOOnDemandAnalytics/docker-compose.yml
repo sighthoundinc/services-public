@@ -17,7 +17,7 @@ services:
 
   # The actual analytics container
   analytics:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r240909}${SIO_DOCKER_TAG_VARIANT-}
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r241014}${SIO_DOCKER_TAG_VARIANT-}
     restart: unless-stopped
     environment:
       # Location where SIO will place generated model engine files

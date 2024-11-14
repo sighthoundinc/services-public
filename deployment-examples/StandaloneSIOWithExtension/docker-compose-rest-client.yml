@@ -1,4 +1,4 @@
-version: "2.3"
+version: '2.3'
 services:
 
   # By default pipelines.json will point to streams served by this container.
@@ -14,67 +14,30 @@ services:
       # A local folder we can drop videos into and have those references via RTSP URI
       # Keep in mind, the videos need to be H264 MKV to be properly served by the server
       - ${DEMO_VIDEO-./videos}:/mnt/data
+    networks:
+      - core_sighthound
 
-  # AMQP broker to receive analytics data
-  rabbitmq_svc:
-    image: docker.io/rabbitmq:3.8-management
-    container_name: sample-rabbitmq
-    restart: unless-stopped
-    volumes:
-      - ./config/rabbitmq/definitions.json:/etc/rabbitmq/definitions.json
-      - ./config/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
-      - rabbitmq_persistent_storage:/var/lib/rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    healthcheck:
-      test: rabbitmq-diagnostics -q ping
-      interval: 30s
-      timeout: 30s
-      retries: 3
-
-  # Media control proxy service, providing access to media and managing its lifecycle
-  mcp_svc:
-    container_name: sample-mcp
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/mcp:1.3.0
-    restart: unless-stopped
-    mem_limit: 1G
-    mem_reservation: 512M
-    volumes:
-      # Location of recorded media; should match that specified for SIO's pipeline configuration
-      - ${HOME-./data}/media:/data/sighthound/media:rw
-      # Location for MCP logs
-      - ${HOME-./data}/logs/mcp:/data/sighthound/logs/mcp:rw
-      # Location of MCP database
-      - ${HOME-./data}/mcp/db:/data/sighthound/db:rw
-      # MCP configuration
-      - ./config/mcp/mcp.yml:/etc/mcpd/default.json:ro
-    ports:
-      - "9097:9097"
-    depends_on:
-      - rabbitmq_svc
-
-  # The SIO analytics container, consuming the streams and analyzing them
-  analytics_svc:
+  analytics:
     image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r241014}${SIO_DOCKER_TAG_VARIANT}
-    container_name: sample-sio
     restart: unless-stopped
     environment:
       # Location where SIO will place generated model engine files
       - SIO_DATA_DIR=/data/.sio
+      # We need this to see output from Python extension module
+      - PYTHONUNBUFFERED=1
     # Container runtime defaults to `runc` if SIO_DOCKER_RUNTIME not set. Use `nvidia` if GPU is installed.
     runtime: ${SIO_DOCKER_RUNTIME-runc}
     volumes:
       # Read-only shared folder for data exchange with host / other containers.
       # We'll use it for license, config files, etc.
       - ./config:/config:ro
-      # Writable shared folder for data exchange with host / other containers.
+      # Writable shared folder for data exchange with host
       # We'll use it for storing the generated model files, data exchange folder, etc.
       - ${HOME-./data}:/data
     entrypoint:
       - /sighthound/sio/bin/runPipelineSet
       # Pipeline configuration file
-      - /config/analytics/pipelines.json
+      - /config/analytics/pipelines-rest-client.json
       # License at the path accessible in the container
       - --license-path=/config/sighthound-license.json
       # Log level (info, debug, trace)
@@ -82,9 +45,23 @@ services:
     depends_on:
       # This dependency can be removed with live555 if no longer necessary.
       - live555_svc
-      - rabbitmq_svc
-      - mcp_svc
+      - rest_svc
+    networks:
+      - core_sighthound
 
 
-volumes:
-  rabbitmq_persistent_storage:
+  rest_svc:
+    build:
+      context: util/RestStub
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    networks:
+      core_sighthound:
+        aliases:
+          - rest_svc
+
+
+networks:
+  core_sighthound:
+    external: false
+    driver: bridge

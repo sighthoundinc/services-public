@@ -1,0 +1,46 @@
+{
+    "unifiedEU-US" : {
+        "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
+        "restartPolicy" : "restart",
+        "parameters" : {
+            "VIDEO_IN"  : "rtsp://live555_svc:554/Turn-02.mkv",
+            "boxFilterConfig" : "/config/analytics/boxFilter-rtsp.json",
+            "detectionModel" : "gen7es",
+            "lptFilter" : "['us']",
+            "mmcFilter" :  "['us']",
+            "lptMinConfidence" : "0.5",
+            "sourceId" : "fw-1",
+            "useTracker" : "true",
+
+            "_extensionModules" : "Specify extension and its corresponding configuration. Multiple may be separated with comma",
+            "extensionModules" : "/config/analytics/restGatewayExtension.py",
+            "extensionConfigurations" : "/config/analytics/restGatewayExtensionConfig.json",
+
+            "_lptPreferAccuracyToSpeed" : "This marginally improves accuracy. Not recommended for constrained/embedded systems",
+            "lptPreferAccuracyToSpeed" : "false",
+
+            "_maxQueueSize" : "Do not let the processing delay build up more than 1s",
+            "maxQueueSize" : "5",
+
+            "_fpsLimit" : "Normalize incoming frame rate to analyze to this fps",
+            "fpsLimit" : "5",
+
+            "_lptStabilizationDelay" : "Delay the result for up to this many frames to help it stabilize",
+            "lptStabilizationDelay" : "3",
+
+            "_updateOnlyOnChange" : "Only emit output when something changes about the object ...",
+            "updateOnlyOnChange" : "true",
+
+            "_updateOnImprovedScore" : "... but also include updates when score improves",
+            "updateOnImprovedScore" : "true",
+
+            "_lptSkipCarsWithoutLPs" : "Include information about vehicles, even if no LPs are associated with them",
+            "lptSkipCarsWithoutLPs" : "false",
+
+            "_debugSettings" : "Can set to something like 'log,json', if more information about the decision making is needed",
+            "debugSettings" : ""
+        },
+        "disabledParameters" : {
+        }
+    }
+}

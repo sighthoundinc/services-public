@@ -17,13 +17,13 @@ Ensure `./StandaloneSIOWithExtension/data/input` exists prior to starting the se
 Next, open a terminal, `cd` into the `./StandaloneSIOWithExtension/` folder, and run the following command to start the services:
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 ```
 
 If you have an NVIDIA GPU installed and properly configured, you can run the following command instead to enable GPU acceleration:
 
 ```bash
-SIO_DOCKER_RUNTIME=nvidia docker compose up -d
+SIO_DOCKER_RUNTIME=nvidia docker compose -f docker-compose.yml up -d
 ```
 
 You can then deposit images and videos into `./StandaloneSIOWithExtension/data/input` and watch the output being printed as those are being procesed.
@@ -43,6 +43,16 @@ camera deployed in such non-deterministic way - thus assuming that monitoring th
 ensures we're not going to analyze objects outside of the bottom right quadrant ROI (`lp_roiFilter` accomplishes that), and won't analyze objects below size threshold (`vehicle_SizeFilter`
 and `lp_SizeFilter` filters accomplish that).
 
+To run this sample, replace `docker-compose.yml` with `docker-compose-rtsp.yml` in the commands above.
+
+## Running the REST gateway sample
+
+REST gateway sample is a variation of RTSP sample, where instead of a more elaborate post-processing of the results,
+they're being sent to a REST API endpoint for further processing.
+
+The sample includes a dummy REST API server.
+
+To run this sample, replace `docker-compose.yml` with `docker-compose-rest.yml` in the commands above.
 
 ## OS Compatibility
 
