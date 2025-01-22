@@ -29,7 +29,7 @@
   <br/>
   <span class="description">
    <p>
-    Analytics data sent by the Sighthound video/image analysis pipeline. This data is sent based on configuration when the number of detected objects or attributes of detected objects changes, the confidence of detected objects or their attributes improves, or a configurable timeout occurs.
+    Analytics data sent by the Sighthound video/image analysis pipeline.  This data is sent based on configuration when the number of detected objects or attributes of detected objects changes, the confidence of detected objects or their attributes improves, or a configurable timeout occurs.
    </p>
   </span>
   <span class="badge badge-info no-additional">
@@ -229,7 +229,7 @@
       <br/>
       <span class="description">
        <p>
-        The dimensions (width and height) of the frame represented by frameId. Also used as the coordinate base for all bounding box coordinates.
+        The dimensions (width and height) of the frame represented by frameId.  Also used as the coordinate base for all bounding box coordinates.
        </p>
       </span>
       <div class="accordion" id="accordionframeDimensions_w">
@@ -499,7 +499,7 @@
           <br/>
           <div class="description collapse" id="collapseDescription_metaClasses_pattern1">
            <p>
-            An plural MetaClass name. Supported MetaClasses
+            An plural MetaClass name.  Supported MetaClasses
             <br/>
             include:
             <br/>
@@ -583,9 +583,9 @@
                <p>
                 A Unique ID representing this object, used to map
                 <br/>
-                additional object properties. This ID is guaranteed unique
+                additional object properties.   This ID is guaranteed unique
                 <br/>
-                for each object, regardless of streamId. It will change the object drops out of
+                for each object, regardless of streamId.  It  will change the object drops out of
                 <br/>
                 detection/tracking
                </p>
@@ -708,7 +708,7 @@
                   <br/>
                   <span class="description">
                    <p>
-                    Object specific class returned by the model. For objects of the vehicles metaclass this may include car, truck, bus, motorbike, etc based on model capabilities
+                    Object specific class returned by the model.  For objects of the vehicles metaclass this may include car, truck, bus, motorbike, etc based on model capabilities
                    </p>
                   </span>
                  </div>
@@ -890,7 +890,7 @@
                       <br/>
                       <div class="description collapse" id="collapseDescription_metaClasses_pattern1_pattern3_attributes_pattern1">
                        <p>
-                        A map of attributes for this object. Not all atributes are supported for all object types. Example attributes include:
+                        A map of attributes for this object. Not all atributes are supported for all object types.   Example attributes include:
                         <br/>
                         color - The color of an object
                         <br/>
@@ -2345,7 +2345,7 @@
                   <br/>
                   <span class="description">
                    <p>
-                    An object hash which uniquely identifies this object and associated attributes. Will change when attributes change. Reserved for future use
+                    An object hash which uniquely identifies this object and associated attributes.  Will change when attributes change.  Reserved for future use
                    </p>
                   </span>
                  </div>
@@ -2958,11 +2958,11 @@
        <p>
         A map of maps describing an event type.
         <br/>
-        - The top level map key is a name describing the event type. Supported types are presenceSensor, lineCrossingEvent, speedEvent.
+        - The top level map key is a name describing the event type.  Supported types are presenceSensor, lineCrossingEvent, speedEvent.
         <br/>
         - The sub level map key is a Unique ID representing the event, used to map
         <br/>
-        additional object properties. This ID is guaranteed unique
+        additional object properties.  This ID is guaranteed unique
         <br/>
         for each event for a given stream ID.
        </p>
@@ -3205,7 +3205,7 @@
                     <p>
                      Describes an event where one or more objects are present in a region of interest.
                      <br/>
-                     The event starts when the first object enters a region of interest. Updates are sent for each change in status, with updateCount incremented for each update. When the last object exits and the region is empty, the sensor event will become immutable and will track the total amount of time at least one object was present in the region of interest. An entry of an object will start a new event and reset the updateCount to 1. Region definitons, object filtering and other items related to sensor definitions are tracked as a part of the sensorId associated with the event.
+                     The event starts when the first object enters a region of interest.  Updates are sent for each change in status, with updateCount incremented for each update.  When the last object exits and the region is empty, the sensor event will become immutable and will track the total amount of time at least one object was present in the region of interest.  An entry of an object will start a new event and reset the updateCount to 1.  Region definitons, object filtering and other items related to sensor definitions are tracked as a part of the sensorId associated with the event.
                     </p>
                    </div>
                    <div>
@@ -3932,7 +3932,7 @@
                        <br/>
                        <div class="description collapse" id="collapseDescription_sensorEvents_pattern1_pattern3_items_oneOf_i0_updateCount">
                         <p>
-                         The cumulative number of updates sent for this sensor, starting with 1 for the initial update and incremented once for each update sent for each unique sensor event ID. An update refers to a change in the state of the sensor due to a corresponding sensor event (entry, exit, crossing, ...). For sensors which include multiple updates per sensor event (presense sensors), the updateCount will be reset to 1 to indicate the first update for a given event. For sensors (count) which only include 1 update per event, updateCount will be cumulative and count the total number of events per sensor.
+                         The cumulative number of updates sent for this sensor, starting with 1 for the initial update and incremented once for each update sent for each unique sensor event ID. An update refers to a change in the state of the sensor due to a corresponding sensor event (entry, exit, crossing, ...).  For sensors which include multiple updates per sensor event (presense sensors), the updateCount will be reset to 1 to indicate the first update for a given event.  For sensors (count) which only include 1 update per event, updateCount will be cumulative and count the total number of events per sensor.
                         </p>
                        </div>
                        <div>
@@ -5515,7 +5515,7 @@
     <a href="https://github.com/coveooss/json-schema-for-humans">
      json-schema-for-humans
     </a>
-    on 2024-11-14 at 16:30:00 +0000
+    on 2025-01-22 at 17:55:07 +0000
    </p>
   </footer>
  </body>

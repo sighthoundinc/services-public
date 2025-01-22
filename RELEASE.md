@@ -1,5 +1,8 @@
 # Release Notes
 
+## v1.5.15
+
+- Update deployments README for redability
 
 ## v1.5.14
 
