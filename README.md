@@ -254,7 +254,7 @@ The `.env` [file](https://docs.docker.com/compose/environment-variables/set-envi
 
 ```bash
 echo "MY_VARIABLE=24" >  sio/conf/user.env
-echo "SIO_DOCKER_TAG=r241014" >  sio/conf/0009-debug.env
+echo "SIO_DOCKER_TAG=r250127" >  sio/conf/0009-debug.env
 ```
 
 And then update the services (create the .env file for docker-compose) by running:

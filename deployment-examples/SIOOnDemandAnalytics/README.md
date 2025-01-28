@@ -50,10 +50,29 @@ When deploying on Jetson devices, additional configuration is required:
 
 ## Testing the API
 
-After everything is running, you can test the API by running:
+To determine the `<ID>` (location ID) dynamically, you can query the list of available locations:
+```bash
+curl http://<camera_ip or localhost>:8080/alpr/v1.0/locations
+```
+
+This will return:
+```json
+{
+  "location": [
+    {
+      "id": 100
+    }
+  ]
+}
+```
+
+Replace `<ID>` with the value found under the `"id"` field to test the analytics for a specific location.
+
+After retrieving the ID, you can test the API by running:
 ```bash
 curl http://<camera_ip or localhost>:8080/alpr/v1.0/locations/100
 ```
+
 This will return an output similar to the following:
 ```json
 {
@@ -86,6 +105,7 @@ This will return an output similar to the following:
   ]
 }
 ```
+
 
 ## Client
 

@@ -35,7 +35,7 @@ services:
 
   # The SIO analytics container, consuming the streams and analyzing them
   analytics_svc:
-    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r241014}${SIO_DOCKER_TAG_VARIANT}
+    image: us-central1-docker.pkg.dev/ext-edge-analytics/docker/sio:${SIO_RELEASE-r250127}${SIO_DOCKER_TAG_VARIANT}
     container_name: sample-sio
     restart: unless-stopped
     environment:

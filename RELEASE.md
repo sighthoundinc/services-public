@@ -1,5 +1,10 @@
 # Release Notes
 
+## V1.5.16
+
+- Update SIO to r250127
+- Update test API readme
+
 ## v1.5.15
 
 - Update deployments README for redability
