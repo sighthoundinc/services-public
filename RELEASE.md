@@ -1,5 +1,9 @@
 # Release Notes
 
+## V1.5.17
+
+- Update rest API to include additional attributes
+
 ## V1.5.16
 
 - Update SIO to r250127

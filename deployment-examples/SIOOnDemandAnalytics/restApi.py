@@ -40,16 +40,18 @@ def getLPInfo(lps, lpKey):
     lpString = lp.get("attributes", {}).get("lpString", {}).get("value", None)
     lpStringScore = lp.get("attributes", {}).get("lpString", {}).get("attributeScore", 0)
     lpRegion = lp.get("attributes", {}).get("lpRegion", {}).get("value", None)
+    lpRegionScore = lp.get("attributes", {}).get("lpRegion", {}).get("attributeScore", 0)
 
     # Find the linked vehicle, if any
     vehicleId = getLinkedObjectId(lp, "vehicles")
 
-    return lpString, lpStringScore, lpRegion, vehicleId
+    return lpString, lpStringScore, lpRegion, lpRegionScore, vehicleId
 
 # -------------------------------------------------------------------------------
 def getVehicleInfo(vehicles, vehicleId):
     vehicle = vehicles.get(vehicleId, {})
     makeModel = vehicle.get("attributes", {}).get("vehicleType", {}).get("value", {})
+    makeModelScore = vehicle.get("attributes", {}).get("vehicleType", {}).get("attributeScore", 0)
     if isinstance(makeModel, dict):
         make = makeModel.get("make","unknown")
         model = makeModel.get("model","unknown") + " " + makeModel.get("generation","")
@@ -57,7 +59,8 @@ def getVehicleInfo(vehicles, vehicleId):
         make = makeModel
         model = "unknown"
     color = vehicle.get("attributes", {}).get("color", {}).get("value", "unknownColor")
-    return make, model, color
+    colorScore = vehicle.get("attributes", {}).get("color", {}).get("attributeScore", 0)
+    return make, model, makeModelScore, color, colorScore
 
 
 
@@ -72,17 +75,19 @@ def parseSIOMessage(message):
 
     # Process license plates
     for lpKey in lps.keys():
-        lpString, lpStringScore, lpRegion, vehicleId = getLPInfo(lps, lpKey)
+        lpString, lpStringScore, lpRegion, lpRegionScore, vehicleId = getLPInfo(lps, lpKey)
 
         # Process vehicle associated with LP (if found)
         if vehicleId:
-            make, model, color = getVehicleInfo(vehicles, vehicleId)
+            make, model, makeModelScore, color, colorScore = getVehicleInfo(vehicles, vehicleId)
         else:
             make = None
             model = None
+            makeModelScore = 0
             color = None
+            colorScore = 0
 
-        newTuple = [ lpString, lpStringScore, lpRegion, make, model, color ]
+        newTuple = [ lpString, lpStringScore, lpRegion, lpRegionScore, make, model, makeModelScore, color, colorScore ]
         newTupleComplete = all(item is not None for item in newTuple)
 
         if not tuple or (newTupleComplete and not tupleComplete):
@@ -90,12 +95,12 @@ def parseSIOMessage(message):
 
     if tuple is None:
         for vehicleId in vehicles.keys():
-            make, model, color = getVehicleInfo(vehicles, vehicleId)
+            make, model, makeModelScore, color, colorScore = getVehicleInfo(vehicles, vehicleId)
             if make and model and color:
-                tuple = [ kInvalidValue, 0, kInvalidValue, make, model, color ]
+                tuple = [ kInvalidValue, 0, kInvalidValue, 0, make, model, makeModelScore, color, colorScore ]
 
     if tuple is None:
-        tuple = [ kInvalidValue, 0, kInvalidValue, kInvalidValue, kInvalidValue, kInvalidValue ]
+        tuple = [ kInvalidValue, 0, kInvalidValue, 0, kInvalidValue, kInvalidValue, 0, kInvalidValue, 0 ]
 
     tuple = [ item if item is not None else kInvalidValue for item in tuple ]
 
@@ -103,7 +108,7 @@ def parseSIOMessage(message):
 
 ### ======================================================
 def convertJson(data, img):
-    lpString, lpConfidence,  lpState, vehicleMake, vehicleModel, vehicleColor = parseSIOMessage(data)
+    lpString, lpStringScore,  lpRegion, lpRegionScore, make, model, makeModelScore, color, colorScore = parseSIOMessage(data)
 
     res = {
         kLocation : {
@@ -119,13 +124,16 @@ def convertJson(data, img):
                 "imageData" : img,
                 "licensePlate" : {
                     "lpString" : lpString,
-                    "lpnConfidence" : lpConfidence,
-                    "lpRegion" : lpState
+                    "lpStringScore" : lpStringScore,
+                    "lpRegion" : lpRegion,
+                    "lpRegionScore": lpRegionScore
                 },
                 "vehicle" : {
-                    "color": vehicleColor,
-                    "make": vehicleMake,
-                    "model": vehicleModel
+                    "make": make,
+                    "model": model,
+                    "makeModelScore": makeModelScore,
+                    "color": color,
+                    "colorScore": colorScore
                 }
             } ]
         } ],
@@ -308,7 +316,7 @@ def analyzeImage(version):
         time.sleep(0.05)
 
     jsonResult, _ = loadJsonAndBase64(fpResult, False)
-    lpString, lpConfidence,  lpState, vehicleMake, vehicleModel, vehicleColor = parseSIOMessage(jsonResult["0"])
+    lpString, lpStringScore,  lpRegion, lpRegionScore, make, model, makeModelScore, color, colorScore = parseSIOMessage(data)
 
     # Clean up the result
     os.remove(fpResult)
@@ -318,13 +326,16 @@ def analyzeImage(version):
         "imageData" : image,
         "licensePlate" : {
             "lpString" : lpString,
-            "lpConfidence" : lpConfidence,
-            "lpRegion" : lpState
+            "lpStringScore" : lpStringScore,
+            "lpRegion" : lpRegion,
+            "lpRegionScore": lpRegionScore
         },
         "vehicle" : {
-            "color": vehicleColor,
-            "make": vehicleMake,
-            "model": vehicleModel
+            "make": make,
+            "model": model,
+            "makeModelScore": makeModelScore,
+            "color": color,
+            "colorScore": colorScore
         }
     }
 
