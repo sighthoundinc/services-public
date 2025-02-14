@@ -1,5 +1,9 @@
 # Release Notes
 
+## V1.5.18
+
+- Add important MCP information
+
 ## V1.5.17
 
 - Update rest API to include additional attributes
