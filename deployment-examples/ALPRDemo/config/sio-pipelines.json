@@ -3,7 +3,7 @@
         "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
         "restartPolicy" : "restart",
         "parameters" : {
-            "VIDEO_IN"  : "rtsp://live555_svc:554/StreetVideo1.mkv",
+            "VIDEO_IN"  : "rtsp://live555_svc:554/Turn-01.mkv",
             "boxFilterConfig" : "/config/sio-box-filter.json",
             "detectionModel" : "gen7es",
             "lptModel" : "gen7es",
@@ -30,7 +30,7 @@
         "pipeline"      : "./share/pipelines/VehicleAnalytics/VehicleAnalyticsRTSP.yaml",
         "restartPolicy" : "restart",
         "parameters" : {
-            "VIDEO_IN"  : "rtsp://live555_svc:554/StreetVideo2.mkv",
+            "VIDEO_IN"  : "rtsp://live555_svc:554/Turn-02.mkv",
             "boxFilterConfig" : "/config/sio-box-filter.json",
             "detectionModel" : "gen7es",
             "lptModel" : "gen7es",

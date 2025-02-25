@@ -295,11 +295,10 @@ The `.env` [file](https://docs.docker.com/compose/environment-variables/set-envi
    ./scripts/sh-services edit <service>
    ```
    and follow the prompts to edit `.env` variables interactively.
-
 2. Add a user-specific file with an `.env` extension to the `conf/` folder, e.g. `sio/conf/0009-debug.env`:
    ```bash
    echo "MY_VARIABLE=24" > sio/conf/0009-debug.env
-   echo "SIO_DOCKER_TAG=r250127" >> sio/conf/0009-debug.env
+   echo "SIO_DOCKER_TAG=r250201" >> sio/conf/0009-debug.env
 
    ./scripts/sh-services merge sio
    ```

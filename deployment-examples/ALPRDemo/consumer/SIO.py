@@ -38,6 +38,24 @@ class SIO:
         return lpString, lpRegion, lpBox
 
     # -------------------------------------------------------------------------------
+    # Get Vehicle attributes
+    # -------------------------------------------------------------------------------
+    def getVehicleInfo(self, vehicles, vehicleKey):
+        vehicle = vehicles[vehicleKey]
+        makeModel = vehicle.get("attributes", {}).get("vehicleType", {}).get("value", {})
+        makeModelScore = vehicle.get("attributes", {}).get("vehicleType", {}).get("value", {})
+        if isinstance(makeModel, dict):
+            make = makeModel.get("make",{})
+            model = makeModel.get("model",{}) + " " + makeModel.get("generation",{})
+        else:
+            make = makeModel
+            model = ""
+        color = vehicle.get("attributes", {}).get("color", {}).get("value", {})
+        vehicleBox = self.getBox(vehicle)
+
+        return make, model, color, vehicleBox, makeModelScore
+
+    # -------------------------------------------------------------------------------
     # Get image ID associated with current message or None
     # -------------------------------------------------------------------------------
     def getFrameImageID(self, message):
@@ -54,6 +72,7 @@ class SIO:
 
         mc = message.get("metaClasses", {})
         lps = mc.get("licensePlates", {})
+        vehicles = mc.get("vehicles", {})
 
         # Get image associated with the frame (this isn't guaranteed)
         imageId = self.getFrameImageID(message)
@@ -61,18 +80,26 @@ class SIO:
         # Process license plates
         for lpKey in lps.keys():
             lpString, lpRegion, lpBox = self.getLPInfo(lps, lpKey)
-            self.onLicensePlate(sourceId, lpKey, frameTimestamp, lpString, lpRegion, lpBox, imageId)
+            links = lps[lpKey].get("links",{})[0]
+            make = ""; model = ""; color = ""; vehicleBox = ""
+            if "vehicles" == links.get("metaClass",{}):
+                vehicleId = links.get("id",{})
+                make, model, color, vehicleBox, makeModelScore = self.getVehicleInfo(vehicles, vehicleId)
+
+            self.onLicensePlate(sourceId, lpKey, frameTimestamp, lpString, lpRegion, lpBox,
+                                make, model, color, makeModelScore, vehicleBox, imageId)
 
 
     # -------------------------------------------------------------------------------
-    def onLicensePlate(self, sourceId, uid, frameTimestamp, lpString, lpRegion, lpBox, imageId):
+    def onLicensePlate(self, sourceId, uid, frameTimestamp, lpString, lpRegion, lpBox, make, model, color, makeModelScore, vBox, imageId):
         frameTimestampValue = int(frameTimestamp)
         timestamp_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(frameTimestampValue/1000))
 
-        lp = LicensePlate(uid, lpRegion, lpString, frameTimestamp, sourceId, lpBox[0], lpBox[1], lpBox[2], lpBox[3], imageId)
+        lp = LicensePlate(uid, make, model, color, lpRegion, lpString, frameTimestamp, sourceId,
+                          lpBox[0], lpBox[1], lpBox[2], lpBox[3], imageId)
         try:
             self.db.add_detection(lp)
-            print(f"{timestamp_str} Got LP source={sourceId}, uid={uid} time={frameTimestamp} string={lpString} region={lpRegion} box={lpBox} imageId={imageId}")
+            print(f"{timestamp_str} Got LP source={sourceId}, uid={uid} time={frameTimestamp} make={make} model={model} color={color} string={lpString} region={lpRegion} box={lpBox} imageId={imageId}")
         except:
             print(f"{timestamp_str} Failed to add to DB: source={sourceId}, uid={uid} time={frameTimestamp} string={lpString} region={lpRegion} box={lpBox}")
             print(f"Failed to insert/update LP: {traceback.format_exc()}")

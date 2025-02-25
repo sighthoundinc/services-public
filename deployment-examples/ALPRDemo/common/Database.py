@@ -3,12 +3,15 @@ import os
 from datetime import datetime, timedelta
 
 class LicensePlate:
-    def __init__(self, object_id, region, plate_string, detection_time, source_id, x, y, w, h, imageId):
+    def __init__(self, object_id, make, model, color, region, plate_string, detection_time, source_id, x, y, w, h, imageId):
         self.object_id = object_id
         self.region = region
         self.plate_string = plate_string
         self.detection_time = detection_time
         self.source_id = source_id
+        self.make = make
+        self.model = model
+        self.color = color
         self.x = x
         self.y = y
         self.w = w
@@ -18,6 +21,9 @@ class LicensePlate:
     def to_dict(self):
         return {
             "oid" : self.object_id,
+            "make" : self.make,
+            "model" : self.model,
+            "color" : self.color,
             "string" : self.plate_string,
             "region" : self.region,
             "time" : self.detection_time,
@@ -38,6 +44,9 @@ class LicensePlateDB:
                 CREATE TABLE IF NOT EXISTS plates (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     object_id TEXT UNIQUE,
+                    make TEXT,
+                    model TEXT,
+                    color TEXT,
                     region TEXT,
                     plate_string TEXT,
                     detection_time INTEGER,  -- Epoch time
@@ -53,10 +62,13 @@ class LicensePlateDB:
     def add_detection(self, license_plate):
         with self.conn:
             self.conn.execute('''
-                INSERT OR IGNORE INTO plates (object_id, region, plate_string, detection_time, source_id, x, y, w, h, imageId)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT OR IGNORE INTO plates (object_id, make, model, color, region, plate_string, detection_time, source_id, x, y, w, h, imageId)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id)
                 DO UPDATE SET
+                make = excluded.make,
+                model = excluded.model,
+                color = excluded.color,
                 region = excluded.region,
                 plate_string = excluded.plate_string,
                 detection_time = excluded.detection_time,
@@ -66,7 +78,8 @@ class LicensePlateDB:
                 h = excluded.h,
                 imageId = excluded.imageId;
                 ''', (
-                license_plate.object_id, license_plate.region, license_plate.plate_string,
+                license_plate.object_id, license_plate.make, license_plate.model,
+                license_plate.color, license_plate.region, license_plate.plate_string,
                 int(license_plate.detection_time), license_plate.source_id,
                 license_plate.x, license_plate.y, license_plate.w, license_plate.h,
                 license_plate.imageId
@@ -123,6 +136,9 @@ if __name__ == '__main__':
     current_time = int(datetime.now().timestamp())
     license_plate = LicensePlate(
         object_id='123ABC',
+        make = 'toyota',
+        model = 'corolla',
+        color = 'white',
         region='FL',
         plate_string='ABC1234',
         detection_time=current_time,

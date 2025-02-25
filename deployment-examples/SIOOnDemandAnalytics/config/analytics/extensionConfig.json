@@ -1,4 +1,5 @@
 {
     "prefix" : "rtsp",
-    "outputFolder" : "/tmp/runvol/live"
+    "outputFolder" : "/tmp/runvol/live",
+    "webhookUrl" : "https://webhook.site/c40a4d68-50d9-4e10-9c85-12c4cb0fce22"
 }

@@ -8,6 +8,7 @@ import json
 import time
 import glob
 from PIL import Image
+import requests
 
 
 class SIOPlugin:
@@ -18,6 +19,8 @@ class SIOPlugin:
         self.outputFolder = None
         self.generatedFiles = []
         self.maxOutput = 10
+        self.headers = {"Content-Type": "application/json"}
+        self.webhookUrl = ""
 
     # ===========================================================
     def clearFolder(self, folderPath, ext):
@@ -56,6 +59,7 @@ class SIOPlugin:
                 config = json.load(configJsonFile)
             self.prefix = config["prefix"]
             self.outputFolder = config["outputFolder"]
+            self.webhookUrl = config["webhookUrl"]
         except:
             print(f"Failed to load extension module configuration from {configJsonPath}")
             raise
@@ -68,6 +72,11 @@ class SIOPlugin:
     # ===========================================================
     # Process the output - save the json and the image
     def process(self, tick, frameDataStr, frame):
+
+        # Send data via POST if URL set
+        if self.webhookUrl:
+            self.postRequest(frameDataStr)
+
         frameData = json.loads(frameDataStr)
         t = int(time.time()*1000)
         name = os.path.join(self.outputFolder, f'{t}-{tick}')
@@ -94,3 +103,15 @@ class SIOPlugin:
         # Ensure a clean slate
         self.clearFolder(self.outputFolder, "jpg")
         self.clearFolder(self.outputFolder, "json")
+
+    # ===========================================================
+    # Send data via POST request
+    def postRequest(self, frameDataStr):
+
+        # Send the POST request
+        response = requests.post(self.webhookUrl, data=frameDataStr, headers=self.headers)
+
+        # Check the response
+        if response.status_code != 200:
+            print(f"Request failed with status code: {response.status_code}")
+            print("Response text:", response.text)

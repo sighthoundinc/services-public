@@ -47,6 +47,10 @@ When deploying on Jetson devices, additional configuration is required:
    ```bash
    sed -i 's|"VIDEO_IN".*:.*"rtsp://.*"|"VIDEO_IN": "rtsp://sh-ui-backend:8555/live"|' config/analytics/pipelines.json
    ```
+6. Execute the following command to get it up and running:
+   ```bash
+   docker compose up
+   ```
 
 ## Testing the API
 

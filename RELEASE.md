@@ -1,5 +1,11 @@
 # Release Notes
 
+## V1.5.19
+
+- Update SIO to r250201
+- Add vehicle MMCG to the UI
+- Add webhook output via POST
+
 ## V1.5.18
 
 - Add important MCP information

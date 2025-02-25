@@ -13,8 +13,10 @@ import subprocess
 import cv2
 from datetime import datetime
 from SIOParser import SIOParser
+import argparse
 
 kDefaultTimeout = 5
+kDefaultIpAddress = "127.0.0.1"
 
 def epoch_to_offset(epoch_timestamp):
     return datetime.utcfromtimestamp(epoch_timestamp/1000).strftime('%H:%M:%S')
@@ -86,11 +88,11 @@ class SettingsDialog(wx.Dialog):
 
 class MainFrame(wx.Frame):
     # =========================================================================
-    def __init__(self, *args, **kw):
+    def __init__(self, ipAddress, *args, **kw):
         super(MainFrame, self).__init__(*args, **kw)
 
         self.settings = {
-            "api_ip": "10.10.10.20",
+            "api_ip": ipAddress,
             "api_port": "8888",
             "refresh_rate": 10,
             "max_entries": 50,
@@ -154,7 +156,6 @@ class MainFrame(wx.Frame):
         search_sizer.Add(self.search_button, 0, wx.ALIGN_CENTER | wx.ALL, 5)
         self.search_tab.SetSizer(search_sizer)
 
-
         # Layout for the File tab
         file_sizer = wx.BoxSizer(wx.VERTICAL)
         self.uploaded_files_list = wx.ListCtrl(self.file_tab, style=wx.LC_REPORT)
@@ -172,17 +173,22 @@ class MainFrame(wx.Frame):
         self.file_tab.SetSizer(file_sizer)
         self.uploaded_files_results = {}
 
-
         self.list_box = self.initListCtrl(self.panel)
         self.image_ctrl = wx.StaticBitmap(self.panel)
-        self.lp_ctrl = wx.StaticBitmap(self.panel, size=(100,60))
+        self.lp_ctrl = wx.StaticBitmap(self.panel, size=(200,100))
+
+        # Create a horizontal sizer for image_ctrl and lp_ctrl
+        self.image_lp_sizer = wx.BoxSizer(wx.HORIZONTAL)
+        self.image_lp_sizer.Add(self.image_ctrl, 1, wx.EXPAND | wx.ALL, 5)  # image_ctrl takes more space
+        self.image_lp_sizer.Add(self.lp_ctrl, 1, wx.ALIGN_CENTER | wx.ALL, 5)  # lp_ctrl stays small
 
         # Layout for the main panel
         main_sizer = wx.BoxSizer(wx.VERTICAL)
         main_sizer.Add(self.notebook, 1, wx.EXPAND)
         main_sizer.Add(self.list_box, 1, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(self.image_ctrl, 1, wx.EXPAND | wx.ALL, 5)
-        main_sizer.Add(self.lp_ctrl, 1, wx.ALIGN_CENTER | wx.ALL, 5)
+        main_sizer.Add(self.image_lp_sizer, 1, wx.EXPAND | wx.ALL, 5)
+        # main_sizer.Add(self.image_ctrl, 1, wx.EXPAND | wx.ALL, 5)
+        # main_sizer.Add(self.lp_ctrl, 1, wx.ALIGN_CENTER | wx.ALL, 5)
         self.panel.SetSizer(main_sizer)
 
         # Bind events
@@ -267,9 +273,10 @@ class MainFrame(wx.Frame):
     def initListCtrl(self,parent):
         ctrl = wx.ListCtrl(parent, style=wx.LC_REPORT)
         ctrl.InsertColumn(0, 'Time')
-        ctrl.InsertColumn(1, 'Plate/State')
-        ctrl.InsertColumn(2, 'Source')
-        ctrl.InsertColumn(3, 'UID')
+        ctrl.InsertColumn(1, 'Make/Model/Color')
+        ctrl.InsertColumn(2, 'Plate/State')
+        ctrl.InsertColumn(3, 'Source')
+        ctrl.InsertColumn(4, 'UID')
         # Bind the single-click event
         ctrl.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onListItemSelected)
         return ctrl
@@ -481,10 +488,14 @@ class MainFrame(wx.Frame):
             else:
                 dt = epoch_to_string(int(entry['time']))
             ctrl.InsertItem(index, f"{dt}")
-            ctrl.SetItem(index, 1, f"{entry['string']}/{entry['region']}")
-            ctrl.SetItem(index, 2, f"{entry['sourceId']}")
-            ctrl.SetItem(index, 3, f"{entry['oid']}")
+            ctrl.SetItem(index, 1, f"{entry['make']}/{entry['model']}/{entry['color']}")
+            ctrl.SetItem(index, 2, f"{entry['string']}/{entry['region']}")
+            ctrl.SetItem(index, 3, f"{entry['sourceId']}")
+            ctrl.SetItem(index, 4, f"{entry['oid']}")
             index = index + 1
+
+            for i in range(4):  # Adjust all columns
+                ctrl.SetColumnWidth(i, wx.LIST_AUTOSIZE)
 
     # =========================================================================
     def apiRoot(self):
@@ -628,8 +639,20 @@ class MainFrame(wx.Frame):
                 print("Error bringing window to front:", e)
 
 
-app = wx.App(False)
-frame = MainFrame(None, title="ALPR Demo", size=(800, 600))
-frame.Bind(wx.EVT_CLOSE, frame.onClose)
-frame.Show()
-app.MainLoop()
+def main():
+
+    # Load args
+    parser = argparse.ArgumentParser(description='Run ALPR Demo Client UI')
+    parser.add_argument('-i', '--ipAddress', type=str, help='The Server IP Address', default=kDefaultIpAddress)
+
+    args = parser.parse_args()
+    ipAddress = args.ipAddress
+
+    app = wx.App(False)
+    frame = MainFrame(ipAddress, None, title="ALPR Demo", size=(800, 600))
+    frame.Bind(wx.EVT_CLOSE, frame.onClose)
+    frame.Show()
+    app.MainLoop()
+
+if __name__ == "__main__":
+    main()
